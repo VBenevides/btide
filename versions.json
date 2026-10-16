@@ -1,0 +1,10 @@
+{
+  "bun": {"minimum_version": "1.3.0"},
+  "lazygit": {"minimum_version": "0.54.0"},
+  "system_tools": {
+    "go": {"minimum_version": "1.25.0"},
+    "node": {"minimum_version": "20.0.0"},
+    "nvim": {"minimum_version": "0.11.2"},
+    "tmux": {"minimum_version": "3.2"}
+  }
+}

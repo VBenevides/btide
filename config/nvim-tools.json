@@ -1,0 +1,21 @@
+{
+  "bash-language-server": ["bash-language-server"],
+  "gopls": ["gopls"],
+  "json-lsp": ["vscode-json-language-server"],
+  "lua-language-server": ["lua-language-server"],
+  "marksman": ["marksman"],
+  "pyright": ["pyright-langserver"],
+  "ruff": ["ruff"],
+  "stylua": ["stylua"],
+  "shfmt": ["shfmt"],
+  "goimports": ["goimports"],
+  "gofumpt": ["gofumpt"],
+  "golangci-lint": ["golangci-lint"],
+  "delve": ["dlv"],
+  "debugpy": ["debugpy-adapter"],
+  "markdownlint-cli2": ["markdownlint-cli2"],
+  "markdown-toc": ["markdown-toc"],
+  "shellcheck": ["shellcheck"],
+  "prettier": ["prettier"],
+  "tree-sitter-cli": ["tree-sitter"]
+}
