@@ -6,8 +6,28 @@ A tmux workspace for Neovim, [PiG](https://github.com/VBenevides/pig-plugins), l
 
 Supported platforms: Linux x86_64 and aarch64, including WSL. Requires Bash and Python 3.10+. Run as your normal user, not root.
 
+### Install with curl
+
+Requires curl, Git, Bash, and Python 3.10+ already installed:
+
+```sh
+curl -fsSL https://raw.githubusercontent.com/VBenevides/btide/main/get.sh | sh
+```
+
+Include Kitty and Ranger image previews:
+
+```sh
+curl -fsSL https://raw.githubusercontent.com/VBenevides/btide/main/get.sh | sh -s -- --include kitty
+```
+
+This clones into a temporary directory, installs standalone copies of the launcher and configuration, and removes the checkout on success or failure. Installed tools and configuration remain; failed installations are not rolled back. Review remote scripts before executing them.
+
+Rerun the same command to reinstall or update (existing configuration is backed up). Other installer options can follow `sh -s --`, such as `--check` for offline verification of an existing installation after fetching the checkout. Curl installs always use `--copy-config`; use that flag when checking them from a local checkout too. To remove a copied launcher, remove `~/.local/bin/btide` after confirming it is the BTIDE executable; `uninstall.sh` only removes checkout-linked launchers.
+
+### Install from a Git checkout
+
 ```bash
-git clone https://github.com/VBenevides/BTIDE.git ~/Projects/BTIDE
+git clone https://github.com/VBenevides/btide.git ~/Projects/BTIDE
 cd ~/Projects/BTIDE
 ./install.sh
 ```
@@ -27,7 +47,7 @@ Ensure `~/.local/bin` is already on your PATH, or invoke `~/.local/bin/btide` di
 
 ### Existing installations and backups
 
-Installation replaces BTIDE's active configuration links and the launcher. Each existing destination is first renamed beside the original as `old_name.ext.TIMESTAMP.bak`, for example:
+Installation replaces BTIDE's active configuration and the launcher. Each existing destination is first renamed beside the original as `old_name.ext.TIMESTAMP.bak`, for example:
 
 ```text
 ~/.config/btide/tmux.conf.1792151943108503224.bak
@@ -64,6 +84,8 @@ PiG installation and plugin configuration are handled by pig-plugins on first us
 | `config/tmux/tmux.conf` | `~/.config/btide/tmux.conf` symlink |
 | `config/kitty/kitty.conf` | `~/.config/btide/kitty.conf` symlink, only with `--include kitty` |
 | `config/misc/MesloLGSNerdFontMono-Regular.ttf` | `~/.local/share/fonts/btide/`, only with `--include kitty` |
+
+The table shows Git-checkout installs. Curl installs use the same destinations but copy files instead of creating checkout symlinks. `./install.sh --copy-config` also selects this standalone mode.
 
 Configuration edits through these symlinks change the checkout. Runtime, editor cache, and integrity receipts stay machine-local. BTIDE Neovim uses `NVIM_APPNAME=btide/nvim.conf`, keeping its data, cache, and state separate from normal Neovim.
 

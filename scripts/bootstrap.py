@@ -78,7 +78,8 @@ def atomic_write(path, content, mode=0o600):
 
 
 class Setup:
-    def __init__(self, home, backup=True, include_kitty=False):
+    def __init__(self, home, backup=True, include_kitty=False, copy_config=False):
+        self.copy_config = copy_config
         self.home = home.resolve()
         self.bin = self.home / '.local/bin'
         self.state = self.home / '.local/share/btide'
@@ -108,6 +109,7 @@ class Setup:
                 (ROOT / 'config/misc/MesloLGSNerdFontMono-Regular.ttf',
                  self.home / '.local/share/fonts/btide/MesloLGSNerdFontMono-Regular.ttf'),
             ])
+        self.config_directories = {target for source, target in self.links if source.is_dir()}
 
     def validate_paths(self):
         paths = [self.bin / 'btide', self.state / 'receipts/check.json', self.state / 'install.lock',
@@ -153,7 +155,12 @@ class Setup:
             self.preserve(path)
         for source, target in self.links:
             target.parent.mkdir(parents=True, exist_ok=True)
-            target.symlink_to(source, target_is_directory=source.is_dir())
+            if not self.copy_config:
+                target.symlink_to(source, target_is_directory=source.is_dir())
+            elif source.is_dir():
+                shutil.copytree(source, target)
+            else:
+                shutil.copy2(source, target)
         if self.include_kitty:
             run(['fc-cache', str(self.home / '.local/share/fonts/btide')],
                 env=self.env, timeout=60)
@@ -410,7 +417,12 @@ class Setup:
         if scope.is_symlink() or not scope.is_file() or not os.access(scope, os.X_OK):
             failures.append('Ranger preview script is missing or unsafe')
         for source, target in self.links:
-            if not target.is_symlink() or target.resolve() != source:
+            if self.copy_config:
+                valid = (not target.is_symlink() and target.exists()
+                         and target.is_dir() == (target in self.config_directories))
+            else:
+                valid = target.is_symlink() and target.resolve() == source
+            if not valid:
                 failures.append('Missing or conflicting configuration: ' + str(target))
         launcher = self.bin / 'btide'
         if not os.access(launcher, os.X_OK):
@@ -457,6 +469,8 @@ def main():
     group = parser.add_mutually_exclusive_group()
     group.add_argument('--check', action='store_true', help='Verify without writing or downloading')
     group.add_argument('--config-only', action='store_true', help='Deploy configuration and the executable launcher')
+    parser.add_argument('--copy-config', action='store_true',
+                        help='Install standalone copies instead of links to this checkout')
     parser.add_argument('--backup-existing', action='store_true',
                         help='Compatibility option; replacements always create timestamped backups')
     parser.add_argument('--install-deps', action='store_true',
@@ -472,7 +486,7 @@ def main():
         parser.error('Run as your normal user, not root')
     if args.install_deps and (args.check or args.config_only):
         parser.error('--install-deps requires a full installation')
-    setup = Setup(Path.home(), include_kitty='kitty' in args.include)
+    setup = Setup(Path.home(), include_kitty='kitty' in args.include, copy_config=args.copy_config)
     if args.check:
         setup.check()
         return
