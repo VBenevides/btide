@@ -200,15 +200,15 @@ class Setup:
                                    './install.sh')
         self.executable('git', ['--version'])
         for name, args in (('go', ['version']), ('node', ['--version']), ('tmux', ['-V'])):
-            self.require_minimum(name, self.executable(name, args))
+            self.executable(name, args)
         if self.include_kitty:
             self.executable('kitty', ['--version'])
             self.executable('fc-cache', ['--version'])
         self.editor_prerequisites()
-        self.require_minimum('lazygit', self.executable('lazygit', ['--version']))
+        self.executable('lazygit', ['--version'])
 
     def editor_prerequisites(self):
-        self.require_minimum('nvim', self.executable('nvim', ['--version']))
+        self.executable('nvim', ['--version'])
         self.executable('ranger', ['--version'])
         self.executable('rg', ['--version'])
         fd = 'fd' if shutil.which('fd', path=self.env['PATH']) else 'fdfind'
@@ -345,6 +345,13 @@ class Setup:
         self.install_archive('lazygit', platform.machine())
 
     def install_archive(self, name, arch):
+        managed = os.path.lexists(self.state / 'receipts' / (name + '.json'))
+        if managed:
+            installed = self.installed_release(name)
+            if self.receipt_valid(name, self.release_identity(installed), self.archive_outputs(name)):
+                return
+        elif shutil.which(name, path=self.env['PATH']):
+            return
         spec = validate_spec(resolve_release(name, arch))
         self.require_minimum(name, spec['version'])
         identity = self.release_identity(spec)
@@ -460,8 +467,37 @@ def install_dependencies(include_kitty=False):
                               if include_kitty else ''))
     if include_kitty:
         commands[-1].extend(optional)
-    for command in commands:
-        run(['sudo', *command])
+    executables = {
+        'golang-go': 'go', 'golang': 'go', 'nodejs': 'node', 'neovim': 'nvim',
+        'ripgrep': 'rg', 'fd-find': 'fdfind', 'build-essential': 'cc',
+        'base-devel': 'cc', 'gcc': 'cc', 'gcc-c++': 'c++',
+        'fontconfig': 'fc-cache', 'xz-utils': 'xz', 'python': 'python3',
+    }
+    manager = commands[-1][0]
+    prefix_length = 4 if manager == 'dnf' else 3
+    missing = []
+    for package in commands[-1][prefix_length:]:
+        executable = executables.get(package, package)
+        if shutil.which(executable) or (package in ('fd', 'fd-find') and shutil.which('fd')):
+            continue
+        if manager == 'apt-get':
+            query = ['dpkg-query', '-W', '-f=${Status}', package]
+        elif manager == 'dnf':
+            query = ['rpm', '-q', package]
+        else:
+            query = ['pacman', '-Q', package]
+        result = subprocess.run(query, capture_output=True, text=True, check=False, timeout=30)
+        if result.returncode not in (0, 1):
+            raise RuntimeError(f'Cannot query installed package {package}: {result.stderr.strip()}')
+        installed = result.returncode == 0
+        if manager == 'apt-get':
+            installed = installed and result.stdout.strip() == 'install ok installed'
+        if not installed:
+            missing.append(package)
+    if missing:
+        for command in commands[:-1]:
+            run(['sudo', *command])
+        run(['sudo', *commands[-1][:prefix_length], *missing])
 
 
 def main():

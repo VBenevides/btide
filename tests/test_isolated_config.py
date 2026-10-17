@@ -78,6 +78,8 @@ class IsolatedConfigTests(unittest.TestCase):
             for include in (False, True):
                 with self.subTest(manager=manager, include=include), \
                         mock.patch.object(bootstrap.shutil, 'which', side_effect=lambda name, manager=manager: name == manager), \
+                        mock.patch.object(bootstrap.subprocess, 'run',
+                                          return_value=mock.Mock(returncode=1, stdout='')), \
                         mock.patch.object(bootstrap, 'run') as run:
                     bootstrap.install_dependencies(include_kitty=include)
                     packages = run.call_args.args[0]

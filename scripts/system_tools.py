@@ -181,14 +181,10 @@ def ensure_compatible_tools(setup, versions, download, atomic_write):
     if architecture not in ('x86_64', 'aarch64'):
         raise RuntimeError('Unsupported fallback architecture: ' + architecture)
     for name in TOOLS:
+        if name not in invalid and (_valid(setup, versions, name)
+                                    or _compatible(setup, name, (0,))):
+            continue
         spec = validate_spec(resolve_release(name, architecture))
-        match = re.fullmatch(r'(\d+)\.(\d+)(?:\.(\d+))?([a-z]?)', spec['version'])
-        latest = (*tuple(int(part or 0) for part in match.groups()[:3]), match[4])
-        valid = name not in invalid and _valid(setup, versions, name)
-        if valid and _installed_spec(setup, name) == spec:
-            continue
-        if not valid and name not in invalid and _compatible(setup, name, latest):
-            continue
         root, manifest, outputs = _paths(setup, name)
         links = [setup.bin / entry for entry in TOOLS[name][3]]
         conflicts = [p for p in [root, manifest, *links] if os.path.lexists(p)]

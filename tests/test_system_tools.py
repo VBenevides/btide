@@ -109,7 +109,15 @@ class SystemToolsTests(unittest.TestCase):
                                                  lambda *args: self.fail('downloaded compatible tool'), atomic_write)
         self.assertFalse(self.setup.state.exists())
 
-    def test_old_versions_receive_complete_reusable_runtime(self):
+    def test_existing_old_versions_do_not_resolve_or_download_releases(self):
+        with patch.object(system_tools.shutil, 'which', return_value='/fixture/tool'), \
+                patch.object(self.setup, 'command', return_value=subprocess.CompletedProcess([], 0, '0.1.0')), \
+                patch.object(system_tools, 'resolve_release', side_effect=AssertionError('network')):
+            system_tools.ensure_compatible_tools(self.setup, self.versions,
+                                                 lambda *args: self.fail('download'), atomic_write)
+        self.assertFalse(self.setup.state.exists())
+
+    def test_missing_tools_receive_complete_reusable_runtime(self):
         for name in ('go', 'node', 'nvim', 'tmux'):
             with self.subTest(name=name):
                 self.install(name)
@@ -180,14 +188,11 @@ class SystemToolsTests(unittest.TestCase):
                 with self.assertRaisesRegex(RuntimeError, 'Unsafe|Unsupported'):
                     system_tools._extract(archive_path, destination)
 
-    def test_changed_release_invalidates_reuse_and_updates_receipt(self):
+    def test_changed_release_keeps_existing_managed_runtime(self):
         self.install('node')
         self.specs['node'] = dict(self.specs['node'], version='100.0.0')
-        with self.assertRaisesRegex(RuntimeError, 'backup-existing'):
-            self.install('node')
-        self.setup.backup = True
         self.install('node')
-        self.assertEqual(system_tools._installed_spec(self.setup, 'node')['version'], '100.0.0')
+        self.assertEqual(system_tools._installed_spec(self.setup, 'node')['version'], '99.0.0')
         system_tools.check_managed_tools(self.setup, self.versions)
 
     def test_offline_validation_ignores_policy_version_changes(self):

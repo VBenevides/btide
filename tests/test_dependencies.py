@@ -67,6 +67,7 @@ class DependencyTests(unittest.TestCase):
     def apt_fixture(self):
         marker = self.root / 'packages-installed'
         self.script('sudo', 'exec "$@"\n')
+        self.script('dpkg-query', 'exit 1\n')
         self.script('apt-get',
                     'for package in "$@"; do\n'
                     '  if [ "$package" = lazygit ]; then\n'
@@ -108,13 +109,14 @@ class DependencyTests(unittest.TestCase):
         self.assertEqual(self.target.stat().st_mtime_ns, binary_before.st_mtime_ns)
         self.assertEqual(self.receipt.read_bytes(), receipt_before)
 
-    def test_old_system_lazygit_is_preserved_but_latest_managed_release_is_installed(self):
+    def test_old_system_lazygit_is_reused_without_resolving_release(self):
         existing = self.script('lazygit', 'printf "old system lazygit\\n"\n')
         before = existing.read_bytes()
-        with self.download_fixture():
+        with mock.patch.object(bootstrap, 'resolve_release', side_effect=AssertionError('network')):
             self.setup.install_lazygit()
         self.assertEqual(existing.read_bytes(), before)
-        self.assert_installed()
+        self.assertFalse(self.target.exists())
+        self.assertFalse(self.receipt.exists())
 
     def test_checksum_mismatch_does_not_install_or_record_success(self):
         with self.download_fixture(self.payload + b'corruption'):
@@ -179,11 +181,33 @@ class DependencyTests(unittest.TestCase):
         for manager in ('apt-get', 'dnf', 'pacman'):
             with self.subTest(manager=manager), \
                     mock.patch.object(bootstrap.shutil, 'which', side_effect=lambda name: name == manager), \
+                    mock.patch.object(bootstrap.subprocess, 'run',
+                                      return_value=subprocess.CompletedProcess([], 1, '', '')), \
                     mock.patch.object(bootstrap, 'run') as run:
                 bootstrap.install_dependencies()
                 self.assertTrue(run.called)
                 for call in run.call_args_list:
                     self.assertNotIn('zsh', call.args[0])
+
+    def test_installed_packages_need_no_sudo_or_refresh(self):
+        with mock.patch.object(bootstrap.shutil, 'which', side_effect=lambda name: name == 'apt-get'), \
+                mock.patch.object(bootstrap.subprocess, 'run', return_value=
+                                  subprocess.CompletedProcess([], 0, 'install ok installed', '')), \
+                mock.patch.object(bootstrap, 'run') as run:
+            bootstrap.install_dependencies(include_kitty=True)
+        run.assert_not_called()
+
+    def test_existing_executable_is_not_requested_from_package_manager(self):
+        with mock.patch.object(bootstrap.shutil, 'which',
+                               side_effect=lambda name: name in ('apt-get', 'go', 'fd')), \
+                mock.patch.object(bootstrap.subprocess, 'run',
+                                  return_value=subprocess.CompletedProcess([], 1, '', '')), \
+                mock.patch.object(bootstrap, 'run') as run:
+            bootstrap.install_dependencies()
+        packages = run.call_args.args[0]
+        self.assertNotIn('golang-go', packages)
+        self.assertNotIn('fd-find', packages)
+        self.assertIn('neovim', packages)
 
     def test_prerequisites_never_execute_tampered_managed_lazygit(self):
         with self.download_fixture():
