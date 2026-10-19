@@ -6,3 +6,6 @@
 vim.opt.wrap = true
 vim.opt.linebreak = true
 vim.opt.breakindent = true
+
+-- Reload unmodified buffers when checktime detects external changes.
+vim.opt.autoread = true
