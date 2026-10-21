@@ -117,6 +117,23 @@ class BtideLauncherTests(unittest.TestCase):
                     self.assertFalse((self.project / 'INJECTED').exists())
                     self.tmux('kill-server')
 
+    def test_terminal_title_shows_project_folder_across_tabs(self):
+        config = self.home / '.config/btide/tmux.conf'
+        config.parent.mkdir(parents=True)
+        config.write_text((ROOT / 'config/tmux/tmux.conf').read_text())
+        process, master = self.start_shell(shutil.which('bash'), self.env)
+        self.wait_client(process)
+        self.assertEqual(self.tmux('show-options', '-gv', 'set-titles').strip(), 'on')
+        title_format = self.tmux('show-options', '-gv', 'set-titles-string').strip()
+        expected = 'BTIDE - ' + self.project.name
+        self.assertEqual(self.tmux('display-message', '-p', title_format).strip(), expected)
+        self.assertIn('\x1b]0;' + expected + '\x07', self.read_output(master))
+        self.tmux('select-window', '-t', ':Shell')
+        self.assertEqual(self.tmux('display-message', '-p', title_format).strip(), expected)
+        self.assertFalse((self.project / 'INJECTED').exists())
+        self.tmux('detach-client')
+        self.assertEqual(process.wait(timeout=5), 0)
+
     def test_btide_config_is_loaded_and_nouse_falls_back_on_new_server(self):
         config = self.home / '.config/btide/tmux.conf'
         config.parent.mkdir(parents=True)

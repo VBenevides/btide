@@ -18,7 +18,8 @@ class UpdateProjectTests(unittest.TestCase):
         self.root.mkdir()
         shutil.copytree(ROOT / 'config', self.root / 'config')
         (self.root / 'scripts').mkdir()
-        for path in ('scripts/bootstrap.py', 'scripts/system_tools.py', 'scripts/releases.py', 'versions.json', 'update-project.py'):
+        for path in ('scripts/bootstrap.py', 'scripts/system_tools.py', 'scripts/releases.py',
+                     'scripts/update.py', 'VERSION', 'versions.json', 'update-project.py'):
             shutil.copy2(ROOT / path, self.root / path)
         spec = importlib.util.spec_from_file_location('capture_bootstrap', self.root / 'scripts/bootstrap.py')
         module = importlib.util.module_from_spec(spec)
@@ -34,6 +35,15 @@ class UpdateProjectTests(unittest.TestCase):
     def run_cli(self, *args):
         return subprocess.run([str(self.root / 'update-project.py'), '--home', str(self.home), *args],
                               capture_output=True, text=True)
+
+    def test_update_artifacts_are_not_reverse_synchronized(self):
+        for name in ('update.py', 'VERSION'):
+            (self.home / '.config/btide' / name).write_text('not configuration\n')
+        result = self.run_cli()
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertEqual((self.root / 'scripts/update.py').read_bytes(),
+                         (ROOT / 'scripts/update.py').read_bytes())
+        self.assertEqual((self.root / 'VERSION').read_bytes(), (ROOT / 'VERSION').read_bytes())
 
     def test_changes_and_dry_run(self):
         target = self.home / '.config/btide/tmux.conf'

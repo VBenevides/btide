@@ -32,7 +32,9 @@ def capture(setup, dry_run=False):
             atomic_write(destination, content.decode('utf-8'),
                          destination.stat().st_mode & 0o777 if destination.exists() else 0o644)
 
-    mappings = [(source, destination) for destination, source in setup.links]
+    # Updater code and version metadata are installed artifacts, not user configuration.
+    mappings = [(source, destination) for destination, source in setup.links
+                if destination not in {ROOT / 'scripts/update.py', ROOT / 'VERSION'}]
     for source, destination in mappings:
         try:
             for parent in source.parents:

@@ -59,6 +59,31 @@ class ShellInstallTests(unittest.TestCase):
                 self.assertEqual(result.returncode, 0, result.stderr)
                 self.assertIn('Usage: btide', result.stdout)
 
+    def test_help_describes_all_options_without_side_effects(self):
+        self.setup.configure()
+        marker = self.home / 'unexpected-command'
+        for command in ('tmux', 'git', 'python3', 'curl', 'kitty'):
+            executable = self.setup.bin / command
+            executable.write_text('#!/bin/sh\nprintf called > "' + str(marker) + '"\nexit 91\n')
+            executable.chmod(0o755)
+        before = {path.relative_to(self.home) for path in self.home.rglob('*')}
+        outputs = []
+        for option in ('--help', '-h'):
+            result = subprocess.run([str(self.setup.bin / 'btide'), option],
+                                    env=self.setup.env, text=True, capture_output=True,
+                                    timeout=10, check=False)
+            self.assertEqual(result.returncode, 0, result.stderr)
+            self.assertEqual(result.stderr, '')
+            outputs.append(result.stdout)
+            for text in ('--reload    Restore missing tabs', '--close     Destroy',
+                         '--update    Reinstall', '--help, -h  Show this help',
+                         'With no option, create or attach', 'newer than local',
+                         'Requires a BTIDE tmux session', 'keeps live applications running'):
+                self.assertIn(text, result.stdout)
+        self.assertEqual(outputs[0], outputs[1])
+        self.assertFalse(marker.exists())
+        self.assertEqual(before, {path.relative_to(self.home) for path in self.home.rglob('*')})
+
     def test_launcher_replacement_preserves_existing_script_and_backup(self):
         launcher = self.setup.bin / 'btide'
         launcher.parent.mkdir(parents=True)

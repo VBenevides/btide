@@ -103,6 +103,10 @@ class Setup:
         self.links = [(source, target) for source, target in self.links
                       if os.path.lexists(target) or not os.path.lexists(target.with_name(target.name + '.nouse'))]
         self.links.append((ROOT / 'config/btide.sh', self.bin / 'btide'))
+        self.links.extend([
+            (ROOT / 'scripts/update.py', self.config / 'update.py'),
+            (ROOT / 'VERSION', self.config / 'VERSION'),
+        ])
         if self.include_kitty:
             self.links.extend([
                 (ROOT / 'config/kitty/kitty.conf', self.config / 'kitty.conf'),

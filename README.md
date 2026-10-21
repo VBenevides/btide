@@ -22,7 +22,9 @@ curl -fsSL https://raw.githubusercontent.com/VBenevides/btide/main/get.sh | sh -
 
 This clones into a temporary directory, installs standalone copies of the launcher and configuration, and removes the checkout on success or failure. Installed tools and configuration remain; failed installations are not rolled back. Review remote scripts before executing them.
 
-Rerun the same command to reinstall or update (existing configuration is backed up). Other installer options can follow `sh -s --`, such as `--check` for offline verification of an existing installation after fetching the checkout. Curl installs always use `--copy-config`; use that flag when checking them from a local checkout too. To remove a copied launcher, remove `~/.local/bin/btide` after confirming it is the BTIDE executable; `uninstall.sh` only removes checkout-linked launchers.
+Run `btide --update` to reinstall from upstream `main` only when its `VERSION` is newer than the installed version. Versions use numeric `MAJOR.MINOR.PATCH` ordering; equal or newer local versions skip installation. Git, Bash, and Python 3.10+ are required. The remote checkout is temporary, and updates deploy standalone copies even if the previous installation used checkout symlinks; your original checkout is not modified. Existing configuration is backed up and previously enabled Kitty support is retained. Failed installations are reported, not rolled back; the previous version is restored so the update can be retried.
+
+Rerun the curl command to reinstall regardless of version (existing configuration is backed up). Other installer options can follow `sh -s --`, such as `--check` for offline verification of an existing installation after fetching the checkout. Curl installs always use `--copy-config`; use that flag when checking them from a local checkout too. To remove a copied launcher, remove `~/.local/bin/btide` after confirming it is the BTIDE executable; `uninstall.sh` only removes checkout-linked launchers.
 
 ### Install from a Git checkout
 
