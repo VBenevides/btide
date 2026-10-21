@@ -21,6 +21,9 @@ class CurlInstallTests(unittest.TestCase):
             root = Path(directory)
             checkout = root / 'checkout'
             shutil.copytree(ROOT / 'config', checkout / 'config')
+            (checkout / 'scripts').mkdir()
+            shutil.copy2(ROOT / 'scripts/update.py', checkout / 'scripts/update.py')
+            shutil.copy2(ROOT / 'VERSION', checkout / 'VERSION')
             with mock.patch.object(bootstrap, 'ROOT', checkout):
                 setup = bootstrap.Setup(root / 'home', include_kitty=True, copy_config=True)
                 with mock.patch.object(bootstrap, 'run'):

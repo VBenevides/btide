@@ -685,6 +685,7 @@ if [ -n "${BASH_VERSION:-}" ] && [[ "${BASH_SOURCE[0]}" == "$0" ]]; then
     '') btide ;;
     --reload) btide_reload ;;
     --close) btide_close ;;
+    --update) python3 "$HOME/.config/btide/update.py" ;;
     --help|-h) printf '%s\n' 'Usage: btide [--reload|--close|--help]' ;;
     *) printf 'Unknown option: %s\n' "$1" >&2; exit 1 ;;
   esac
