@@ -158,6 +158,8 @@ Included language servers: `bashls`, `gopls`, `jsonls`, `lua_ls`, `marksman`, `p
 
 Ctrl+a in normal mode selects all text in linewise visual mode, equivalent to `ggVG`. Ctrl+f searches the current buffer; Ctrl+h opens a whole-buffer substitution with confirmation.
 
+The `d` operator discards deleted text in normal and visual modes, including `dd` for a line. It leaves the clipboard and yank registers unchanged. Use `y` or `"+y` to copy text before deletion.
+
 Ctrl+Shift+f opens project-wide find. Ctrl+Shift+h opens project-wide replace through Grug Far, without a file-type restriction. Both shortcuts work in normal and insert modes.
 
 In Grug Far, enter the search and replacement text. Review the matches before you press `\r` to replace them. These shortcuts require a terminal that sends distinct Ctrl+Shift key sequences. The bundled Kitty configuration provides these sequences. See `config/nvim/README.md` for explorer actions.

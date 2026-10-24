@@ -51,6 +51,44 @@ end
 """
         )
 
+    def test_delete_preserves_clipboard_and_explicit_copy(self):
+        self.run_lua(
+            f"dofile({json.dumps(str(KEYMAPS))})\n"
+            + r"""
+local clipboard = { "keep this clipboard" }
+local writes = 0
+local function copy(lines) clipboard = vim.deepcopy(lines); writes = writes + 1 end
+local function paste() return { vim.deepcopy(clipboard), "V" } end
+vim.g.clipboard = {
+  name = "test clipboard",
+  copy = { ["+"] = copy, ["*"] = copy },
+  paste = { ["+"] = paste, ["*"] = paste },
+  cache_enabled = 0,
+}
+vim.opt.clipboard = "unnamedplus"
+local function keys(input)
+  vim.api.nvim_feedkeys(vim.api.nvim_replace_termcodes(input, true, false, true), "xt", false)
+end
+for _, input in ipairs({ "dd", "2dd", "Vd", "Vjd", "dw" }) do
+  vim.api.nvim_buf_set_lines(0, 0, -1, false, { "one", "two", "three", "four" })
+  vim.api.nvim_win_set_cursor(0, { 1, 0 })
+  keys(input)
+  assert(vim.api.nvim_get_current_line() ~= "one", "Expected deletion: " .. input)
+  assert(writes == 0, "Deletion wrote to clipboard: " .. input)
+  assert(clipboard[1] == "keep this clipboard")
+end
+vim.api.nvim_buf_set_lines(0, 0, -1, false, { "one", "two", "three" })
+vim.api.nvim_win_set_cursor(0, { 1, 0 })
+keys("dd.")
+assert(vim.api.nvim_buf_line_count(0) == 1, "Dot repeat must delete another line")
+assert(writes == 0, "Dot repeat wrote to clipboard")
+keys("yy")
+assert(writes > 0 and clipboard[1] == "three", "Explicit yank must copy")
+keys('"+yy')
+assert(clipboard[1] == "three", "Explicit clipboard yank must copy")
+"""
+        )
+
     def test_project_shortcuts_preserve_buffer_search(self):
         self.run_lua(
             f"dofile({json.dumps(str(KEYMAPS))})\n"

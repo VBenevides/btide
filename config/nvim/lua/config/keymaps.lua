@@ -4,6 +4,9 @@
 
 vim.keymap.set("n", "<C-a>", "ggVG", { desc = "Select all text" })
 
+-- Discard deleted text without changing the clipboard or yank registers.
+vim.keymap.set({ "n", "x" }, "d", '"_d', { desc = "Delete without copying" })
+
 vim.keymap.set("n", "<C-f>", "/", { desc = "Find in buffer" })
 vim.keymap.set("i", "<C-f>", "<Esc>/", { desc = "Find in buffer" })
 
