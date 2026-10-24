@@ -2,6 +2,8 @@
 -- Default keymaps that are always set: https://github.com/LazyVim/LazyVim/blob/main/lua/lazyvim/config/keymaps.lua
 -- Add any additional keymaps here
 
+vim.keymap.set("n", "<C-a>", "ggVG", { desc = "Select all text" })
+
 vim.keymap.set("n", "<C-f>", "/", { desc = "Find in buffer" })
 vim.keymap.set("i", "<C-f>", "<Esc>/", { desc = "Find in buffer" })
 

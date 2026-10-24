@@ -130,7 +130,7 @@ PiG checks executable paths in order:
 
 The download must succeed before execution. Installation failures remain visible in the PiG pane; restart it with prefix + `x` to retry explicitly. Review the upstream installer before first use.
 
-Managed applications restart when they exit. The configured tmux prefix is Ctrl+a; Ctrl+b shows hints and enters prefix mode. Prefix + `x` restarts the current pane, `d` detaches, and `X` confirms closing the whole session. Alt+g and Alt+s open temporary lazygit and shell popups; Alt+z zooms a pane.
+Managed applications restart when they exit. The configured tmux prefix is Ctrl+b, which shows hints and enters prefix mode. Prefix + `x` restarts the current pane, `d` detaches, and `X` confirms closing the whole session. Alt+g and Alt+s open temporary lazygit and shell popups; Alt+z zooms a pane.
 
 ```bash
 btide --reload  # Inside tmux: restore missing tabs without restarting live applications
@@ -156,7 +156,7 @@ Neo-tree stays closed on startup; use `Space e` to open it. Dotfiles and Git-ign
 
 Included language servers: `bashls`, `gopls`, `jsonls`, `lua_ls`, `marksman`, `pyright`, and `ruff`. Go and Python debugging use Delve and debugpy. Formatters and other tools are listed in `config/nvim-tools.json`. Inspect them with `:Lazy`, `:Mason`, `:LspInfo`, and `:ConformInfo`; add extras with `:LazyExtras`.
 
-Ctrl+f searches the current buffer; Ctrl+h opens a whole-buffer substitution with confirmation. See `config/nvim/README.md` for explorer actions.
+Ctrl+a in normal mode selects all text in linewise visual mode, equivalent to `ggVG`. Ctrl+f searches the current buffer; Ctrl+h opens a whole-buffer substitution with confirmation. See `config/nvim/README.md` for explorer actions.
 
 ## Capture local configuration
 
