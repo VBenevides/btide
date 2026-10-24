@@ -2,6 +2,28 @@
 
 Notable changes to BTIDE, a portable terminal IDE workspace.
 
+## [0.1.2] - 2026-10-24
+
+### Features
+
+- Add Ctrl+A in Neovim normal mode to select the entire buffer in linewise visual mode, equivalent to `ggVG`.
+- Add Ctrl+Shift+F for project-wide find and Ctrl+Shift+H for project-wide replace in normal and insert modes. Replacement uses Grug Far without file-type restrictions.
+
+### Bugfixes
+
+- Make the `d` operator discard deleted text without changing the clipboard or yank registers. Preserve explicit copy commands, counted deletion, and dot repeat.
+- Forward distinct Ctrl+Shift+F and Ctrl+Shift+H key sequences from the bundled Kitty configuration instead of invoking Kitty window actions.
+
+### Other
+
+- Document the new shortcuts, clipboard behavior, terminal requirements, and Grug Far replacement controls.
+- Add tests for full-buffer selection, clipboard-safe deletion, project shortcuts, Kitty mappings, and tmux prefix handling.
+- Add an optional Grug Far integration test for search and replacement across multiple file types, including project paths with spaces.
+
+### Breaking Changes
+
+- Change the tmux prefix from Ctrl+A to Ctrl+B so Ctrl+A reaches Neovim. Use Ctrl+B for prefix commands.
+
 ## [0.1.1] - 2026-10-21
 
 ### Features
