@@ -7,6 +7,17 @@ vim.keymap.set("n", "<C-a>", "ggVG", { desc = "Select all text" })
 vim.keymap.set("n", "<C-f>", "/", { desc = "Find in buffer" })
 vim.keymap.set("i", "<C-f>", "<Esc>/", { desc = "Find in buffer" })
 
+vim.keymap.set({ "n", "i" }, "<C-S-f>", function()
+  LazyVim.pick("live_grep")()
+end, { desc = "Find in project" })
+
+vim.keymap.set({ "n", "i" }, "<C-S-h>", function()
+  require("grug-far").open({
+    transient = true,
+    prefills = { paths = LazyVim.root():gsub(" ", "\\ ") },
+  })
+end, { desc = "Replace in project" })
+
 -- Leave the cursor in the search field; confirm each replacement.
 vim.keymap.set("n", "<C-h>", ":%s///gc<Left><Left><Left><Left>", { desc = "Replace in buffer" })
 vim.keymap.set("i", "<C-h>", "<Esc>:%s///gc<Left><Left><Left><Left>", { desc = "Replace in buffer" })

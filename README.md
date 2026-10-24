@@ -156,7 +156,11 @@ Neo-tree stays closed on startup; use `Space e` to open it. Dotfiles and Git-ign
 
 Included language servers: `bashls`, `gopls`, `jsonls`, `lua_ls`, `marksman`, `pyright`, and `ruff`. Go and Python debugging use Delve and debugpy. Formatters and other tools are listed in `config/nvim-tools.json`. Inspect them with `:Lazy`, `:Mason`, `:LspInfo`, and `:ConformInfo`; add extras with `:LazyExtras`.
 
-Ctrl+a in normal mode selects all text in linewise visual mode, equivalent to `ggVG`. Ctrl+f searches the current buffer; Ctrl+h opens a whole-buffer substitution with confirmation. See `config/nvim/README.md` for explorer actions.
+Ctrl+a in normal mode selects all text in linewise visual mode, equivalent to `ggVG`. Ctrl+f searches the current buffer; Ctrl+h opens a whole-buffer substitution with confirmation.
+
+Ctrl+Shift+f opens project-wide find. Ctrl+Shift+h opens project-wide replace through Grug Far, without a file-type restriction. Both shortcuts work in normal and insert modes.
+
+In Grug Far, enter the search and replacement text. Review the matches before you press `\r` to replace them. These shortcuts require a terminal that sends distinct Ctrl+Shift key sequences. The bundled Kitty configuration provides these sequences. See `config/nvim/README.md` for explorer actions.
 
 ## Capture local configuration
 
