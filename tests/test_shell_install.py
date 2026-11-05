@@ -77,6 +77,8 @@ class ShellInstallTests(unittest.TestCase):
             outputs.append(result.stdout)
             for text in ('--reload    Restore missing tabs', '--close     Destroy',
                          '--update    Reinstall', '--version   Show the installed version',
+                         'kill-server Stop all BTIDE sessions',
+                         'The next btide launch loads the current configuration',
                          '--help, -h  Show this help',
                          'With no option, create or attach', 'newer than local',
                          'Requires a BTIDE tmux session', 'keeps live applications running'):

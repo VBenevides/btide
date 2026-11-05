@@ -6,6 +6,7 @@ import select
 import shlex
 import shutil
 import subprocess
+import sys
 import tempfile
 import time
 import unittest
@@ -94,6 +95,48 @@ class BtideLauncherTests(unittest.TestCase):
             data.extend(chunk)
         return data.decode(errors='replace')
 
+    def test_kill_server_stops_all_btide_sessions_and_next_launch_loads_config(self):
+        assert self.real_tmux is not None
+        config = self.home / '.config/btide/tmux.conf'
+        config.parent.mkdir(parents=True)
+        config.write_text('set -g @config_version old\n')
+        self.tmux('-f', str(config), 'new-session', '-d', '-s', 'first', 'sleep 120')
+        self.tmux('new-session', '-d', '-s', 'second', 'sleep 120')
+        self.assertEqual(len(self.tmux('list-sessions').splitlines()), 2)
+        other_socket = self.socket + '-other'
+        self.addCleanup(lambda real_tmux=self.real_tmux: subprocess.run(
+            [real_tmux, '-L', other_socket, 'kill-server'],
+            stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL))
+        subprocess.run([self.real_tmux, '-L', other_socket, '-f', '/dev/null',
+                        'new-session', '-d', '-s', 'unrelated', 'sleep 120'],
+                       env=self.env, check=True, capture_output=True, timeout=5)
+        other_tmux = subprocess.check_output(
+            [self.real_tmux, '-L', other_socket, 'display-message', '-p',
+             '#{socket_path},#{pid},0'], env=self.env, text=True, timeout=5).strip()
+        config.write_text('set -g @config_version new\n')
+        result = subprocess.run([str(ROOT / 'config/btide.sh'), 'kill-server'],
+                                env=dict(self.env, TMUX=other_tmux),
+                                text=True, capture_output=True, timeout=5)
+        self.assertEqual(result.returncode, 0, result.stderr)
+        stopped = subprocess.run([self.real_tmux, '-L', self.socket, 'list-sessions'],
+                                 env=self.env, text=True, capture_output=True, timeout=5)
+        self.assertNotEqual(stopped.returncode, 0, stopped.stdout)
+        unrelated = subprocess.check_output(
+            [self.real_tmux, '-L', other_socket, 'list-sessions', '-F', '#{session_name}'],
+            env=self.env, text=True, timeout=5)
+        self.assertEqual(unrelated.strip(), 'unrelated')
+        process, master = self.start_shell(shutil.which('bash'), self.env)
+        self.wait_client(process)
+        self.assertEqual(self.tmux('show-options', '-gqv', '@config_version').strip(), 'new')
+        self.tmux('detach-client')
+        self.assertEqual(process.wait(timeout=5), 0)
+
+    def test_kill_server_reports_failure_when_server_is_not_running(self):
+        result = subprocess.run([str(ROOT / 'config/btide.sh'), 'kill-server'],
+                                env=self.env, text=True, capture_output=True, timeout=5)
+        self.assertNotEqual(result.returncode, 0)
+        self.assertTrue(result.stderr.strip())
+
     def test_attach_in_existing_kitty_or_headless_terminal_returns_to_original_shell(self):
         for terminal in ('kitty', 'headless', 'graphical'):
             for shell in filter(None, (shutil.which('bash'), shutil.which('zsh'))):
@@ -131,6 +174,59 @@ class BtideLauncherTests(unittest.TestCase):
         self.tmux('select-window', '-t', ':Shell')
         self.assertEqual(self.tmux('display-message', '-p', title_format).strip(), expected)
         self.assertFalse((self.project / 'INJECTED').exists())
+        self.tmux('detach-client')
+        self.assertEqual(process.wait(timeout=5), 0)
+
+    def test_alt_navigation_reaches_pig_and_still_selects_other_panes(self):
+        config = self.home / '.config/btide/tmux.conf'
+        config.parent.mkdir(parents=True)
+        config.write_text((ROOT / 'config/tmux/tmux.conf').read_text())
+        recorder = self.root / 'record_keys.py'
+        ready = self.root / 'ready'
+        received = self.root / 'received'
+        recorder.write_text(
+            'import os, tty\n'
+            'from pathlib import Path\n'
+            'tty.setraw(0)\n'
+            f'Path({str(ready)!r}).touch()\n'
+            f'with open({str(received)!r}, "wb", buffering=0) as output:\n'
+            '    while True:\n'
+            '        output.write(os.read(0, 1024))\n')
+        process, master = self.start_shell(shutil.which('bash'), self.env)
+        self.wait_client(process)
+        self.tmux('select-window', '-t', ':PiG')
+        self.tmux('respawn-pane', '-k', '-t', ':PiG',
+                  shlex.join([sys.executable, str(recorder)]))
+        deadline = time.monotonic() + 5
+        while not ready.exists() and time.monotonic() < deadline:
+            time.sleep(0.02)
+        self.assertTrue(ready.exists(), 'Key recorder did not start')
+        expected = b''
+        for sequence in (b'\x1b[1;3D', b'\x1b[1;3C', b'\x1bh', b'\x1bl'):
+            with self.subTest(sequence=sequence):
+                expected += sequence
+                os.write(master, sequence)
+                deadline = time.monotonic() + 2
+                while time.monotonic() < deadline:
+                    if received.exists() and received.read_bytes() == expected:
+                        break
+                    time.sleep(0.02)
+                self.assertEqual(received.read_bytes(), expected)
+        self.tmux('select-window', '-t', ':Code')
+        left = self.tmux('display-message', '-p', '#{pane_id}').strip()
+        right = self.tmux('split-window', '-h', '-P', '-F', '#{pane_id}', 'sleep 120').strip()
+        for sequence, target in ((b'\x1b[1;3D', left), (b'\x1b[1;3C', right),
+                                 (b'\x1bh', left), (b'\x1bl', right)):
+            with self.subTest(sequence=sequence, target=target):
+                os.write(master, sequence)
+                active = ''
+                deadline = time.monotonic() + 2
+                while time.monotonic() < deadline:
+                    active = self.tmux('display-message', '-p', '#{pane_id}').strip()
+                    if active == target:
+                        break
+                    time.sleep(0.02)
+                self.assertEqual(active, target)
         self.tmux('detach-client')
         self.assertEqual(process.wait(timeout=5), 0)
 

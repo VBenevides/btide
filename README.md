@@ -105,7 +105,7 @@ mv ~/.config/btide/nvim.conf ~/.config/btide/nvim.conf.nouse
 - Reinstallation preserves `.nouse` choices instead of recreating the disabled configuration.
 - Rename `.nouse` back to the original name to enable the BTIDE configuration again.
 
-BTIDE uses its own tmux server (`tmux -L btide`), leaving ordinary tmux sessions alone. tmux reads its startup configuration only when the server starts. To change configuration sources, close all BTIDE sessions first. Alternatively, `tmux -L btide kill-server` stops **all BTIDE sessions and their running applications**; use it only after saving your work. Disabling the tmux config also disables its styling and extra bindings; the launcher still installs its managed-tab bindings.
+BTIDE uses its own tmux server (`tmux -L btide`), leaving ordinary tmux sessions alone. tmux reads its startup configuration only when the server starts. To change configuration sources, save your work, then run `btide kill-server`. This command stops **all BTIDE sessions and their running applications**, including sessions for other projects. The next `btide` launch loads the current configuration. Disabling the tmux config also disables its styling and extra bindings; the launcher still installs its managed-tab bindings.
 
 ## Launch and shortcuts
 
@@ -132,9 +132,12 @@ The download must succeed before execution. Installation failures remain visible
 
 Managed applications restart when they exit. The configured tmux prefix is Ctrl+b, which shows hints and enters prefix mode. Prefix + `x` restarts the current pane, `d` detaches, and `X` confirms closing the whole session. Alt+g and Alt+s open temporary lazygit and shell popups; Alt+z zooms a pane.
 
+In the PiG tab, Alt+Left, Alt+Right, Alt+h, and Alt+l reach PiG for interaction navigation. In other tabs, these shortcuts select panes.
+
 ```bash
 btide --reload  # Inside tmux: restore missing tabs without restarting live applications
 btide --close   # Inside tmux: destroy the current session
+btide kill-server  # Stop all BTIDE sessions; load current config on the next launch
 btide --help
 ```
 

@@ -685,6 +685,7 @@ if [ -n "${BASH_VERSION:-}" ] && [[ "${BASH_SOURCE[0]}" == "$0" ]]; then
     '') btide ;;
     --reload) btide_reload ;;
     --close) btide_close ;;
+    kill-server) tmux kill-server ;;
     --update) python3 "$HOME/.config/btide/update.py" ;;
     --version)
       version="$(cat "$HOME/.config/btide/VERSION")" || exit 1
@@ -692,7 +693,7 @@ if [ -n "${BASH_VERSION:-}" ] && [[ "${BASH_SOURCE[0]}" == "$0" ]]; then
       ;;
     --help|-h)
       printf '%s\n' \
-        'Usage: btide [--reload|--close|--update|--version|--help]' \
+        'Usage: btide [kill-server|--reload|--close|--update|--version|--help]' \
         '' \
         'With no option, create or attach to the workspace for the current directory.' \
         '' \
@@ -701,6 +702,8 @@ if [ -n "${BASH_VERSION:-}" ] && [[ "${BASH_SOURCE[0]}" == "$0" ]]; then
         '              Requires a BTIDE tmux session; keeps live applications running.' \
         '  --close     Destroy the current BTIDE tmux session and its running applications.' \
         '              Requires a BTIDE tmux session.' \
+        '  kill-server Stop all BTIDE sessions and their running applications.' \
+        '              The next btide launch loads the current configuration.' \
         '  --update    Reinstall from remote main only when its version is newer than local.' \
         '              Uses standalone copies; backs up existing configuration.' \
         '  --version   Show the installed version without starting a session.' \
