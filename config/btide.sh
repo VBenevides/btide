@@ -686,9 +686,13 @@ if [ -n "${BASH_VERSION:-}" ] && [[ "${BASH_SOURCE[0]}" == "$0" ]]; then
     --reload) btide_reload ;;
     --close) btide_close ;;
     --update) python3 "$HOME/.config/btide/update.py" ;;
+    --version)
+      version="$(cat "$HOME/.config/btide/VERSION")" || exit 1
+      printf 'btide %s\n' "$version"
+      ;;
     --help|-h)
       printf '%s\n' \
-        'Usage: btide [--reload|--close|--update|--help]' \
+        'Usage: btide [--reload|--close|--update|--version|--help]' \
         '' \
         'With no option, create or attach to the workspace for the current directory.' \
         '' \
@@ -699,6 +703,7 @@ if [ -n "${BASH_VERSION:-}" ] && [[ "${BASH_SOURCE[0]}" == "$0" ]]; then
         '              Requires a BTIDE tmux session.' \
         '  --update    Reinstall from remote main only when its version is newer than local.' \
         '              Uses standalone copies; backs up existing configuration.' \
+        '  --version   Show the installed version without starting a session.' \
         '  --help, -h  Show this help without starting a session or installing anything.'
       ;;
     *) printf 'Unknown option: %s\n' "$1" >&2; exit 1 ;;
