@@ -76,13 +76,38 @@ class ShellInstallTests(unittest.TestCase):
             self.assertEqual(result.stderr, '')
             outputs.append(result.stdout)
             for text in ('--reload    Restore missing tabs', '--close     Destroy',
-                         '--update    Reinstall', '--help, -h  Show this help',
+                         '--update    Reinstall', '--version   Show the installed version',
+                         'kill-server Stop all BTIDE sessions',
+                         'The next btide launch loads the current configuration',
+                         '--help, -h  Show this help',
                          'With no option, create or attach', 'newer than local',
                          'Requires a BTIDE tmux session', 'keeps live applications running'):
                 self.assertIn(text, result.stdout)
         self.assertEqual(outputs[0], outputs[1])
         self.assertFalse(marker.exists())
         self.assertEqual(before, {path.relative_to(self.home) for path in self.home.rglob('*')})
+
+    def test_version_reports_installed_version_without_side_effects(self):
+        for copy_config in (False, True):
+            with self.subTest(copy_config=copy_config):
+                setup = bootstrap.Setup(self.home, copy_config=copy_config)
+                setup.configure()
+                before = {path.relative_to(self.home) for path in self.home.rglob('*')}
+                result = subprocess.run([str(setup.bin / 'btide'), '--version'],
+                                        env=setup.env, text=True, capture_output=True, timeout=10)
+                self.assertEqual(result.returncode, 0, result.stderr)
+                self.assertEqual(result.stdout, 'btide ' + (setup.config / 'VERSION').read_text().strip() + '\n')
+                self.assertEqual(result.stderr, '')
+                self.assertEqual(before, {path.relative_to(self.home) for path in self.home.rglob('*')})
+
+    def test_version_fails_when_installed_version_is_missing(self):
+        self.setup.configure()
+        (self.setup.config / 'VERSION').unlink()
+        result = subprocess.run([str(self.setup.bin / 'btide'), '--version'],
+                                env=self.setup.env, text=True, capture_output=True, timeout=10)
+        self.assertNotEqual(result.returncode, 0)
+        self.assertEqual(result.stdout, '')
+        self.assertIn('VERSION', result.stderr)
 
     def test_launcher_replacement_preserves_existing_script_and_backup(self):
         launcher = self.setup.bin / 'btide'
