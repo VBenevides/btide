@@ -116,7 +116,11 @@ done
 
 _TM_GIT_CMD="
 while :; do
-    lazygit
+    if [ -f \"\$HOME/.config/btide/lazygit.yml\" ]; then
+        lazygit --use-config-file=\"\$HOME/.config/btide/lazygit.yml\"
+    else
+        lazygit
+    fi
     sleep $_TM_RESTART_DELAY
 done
 "

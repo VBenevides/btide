@@ -42,7 +42,8 @@ class UpdateTests(unittest.TestCase):
             self.version.write_text(self.remote)
             raise self.failure
         else:
-            self.assertEqual(args[-1], "--copy-config")
+            self.assertEqual(args, ["make", "-C", str(self.checkouts[-1]),
+                                    "install", "INSTALL_ARGS=--copy-config"])
             self.version.write_text(self.remote)
 
     def test_upgrade_then_repeat_skips_install_and_cleans_checkout(self):
@@ -52,7 +53,7 @@ class UpdateTests(unittest.TestCase):
             updater.update(self.home)
             updater.update(self.home)
         self.assertEqual(
-            [call.args[0][0] for call in run.call_args_list], ["git", "bash", "git"]
+            [call.args[0][0] for call in run.call_args_list], ["git", "make", "git"]
         )
         self.assertTrue(all(not path.exists() for path in self.checkouts))
 
@@ -108,7 +109,7 @@ class UpdateTests(unittest.TestCase):
         self.assertEqual(run.call_count, 1)
 
     def test_install_failure_preserves_local_version_and_never_reports_success(self):
-        self.failure = subprocess.CalledProcessError(1, "install.sh")
+        self.failure = subprocess.CalledProcessError(2, "make")
         output = io.StringIO()
         with (
             mock.patch.object(updater.subprocess, "run", side_effect=self.run_command),

@@ -63,21 +63,49 @@ class CurlInstallTests(unittest.TestCase):
                     'printf "%s\\n" "$destination" > "$RECORD.checkout"\n'
                     'printf \'printf "%%s\\n" "$@" > "$RECORD.args"\\nexit "$STATUS"\\n\' '
                     '> "$destination/install.sh"\n'
+                    'cp "$MAKEFILE_SOURCE" "$destination/Makefile"\n'
                 )
                 git.chmod(0o755)
                 record = root / 'record'
                 env = dict(os.environ, PATH=str(bin_path) + os.pathsep + os.environ['PATH'],
-                           TMPDIR=str(temp), RECORD=str(record), STATUS=str(status))
+                           TMPDIR=str(temp), RECORD=str(record), STATUS=str(status),
+                           MAKEFILE_SOURCE=str(ROOT / 'Makefile'))
                 result = subprocess.run(['sh', '-s', '--', '--include', 'kitty'],
                                         input=(ROOT / 'get.sh').read_text(), text=True,
                                         capture_output=True, env=env, check=False)
-                self.assertEqual(result.returncode, status, result.stderr)
+                self.assertEqual(result.returncode, 0 if status == 0 else 2, result.stderr)
+                self.assertIn('make', result.stdout)
                 self.assertEqual(record.with_suffix('.args').read_text().splitlines(),
                                  ['--copy-config', '--include', 'kitty'])
                 checkout = Path(record.with_suffix('.checkout').read_text().strip())
                 self.assertEqual(checkout.parent.parent, temp / 'btide')
                 self.assertFalse(checkout.exists())
                 self.assertEqual(list((temp / 'btide').iterdir()), [])
+
+    def test_make_install_runs_full_installer_and_preserves_literal_options(self):
+        with tempfile.TemporaryDirectory(prefix='btide make ') as directory:
+            checkout = Path(directory)
+            shutil.copy2(ROOT / 'Makefile', checkout / 'Makefile')
+            installer = checkout / 'install.sh'
+            installer.write_text('printf "%s\\n" "$@" > args\nexit "${STATUS:-0}"\n')
+            env = dict(os.environ)
+            env.pop('INSTALL_ARGS', None)
+            result = subprocess.run(['make', '-C', str(checkout), 'install'],
+                                    env=env, text=True, capture_output=True)
+            self.assertEqual(result.returncode, 0, result.stderr)
+            self.assertEqual((checkout / 'args').read_text().split(), [])
+            options = "--include kitty '--literal=$(touch injected); with spaces'"
+            result = subprocess.run(['make', '-C', str(checkout), 'install',
+                                     'INSTALL_ARGS=' + options],
+                                    env=env, text=True, capture_output=True)
+            self.assertEqual(result.returncode, 0, result.stderr)
+            self.assertEqual((checkout / 'args').read_text().splitlines(),
+                             ['--include', 'kitty', '--literal=$(touch injected); with spaces'])
+            self.assertFalse((checkout / 'injected').exists())
+            env['STATUS'] = '7'
+            result = subprocess.run(['make', '-C', str(checkout), 'install'],
+                                    env=env, text=True, capture_output=True)
+            self.assertNotEqual(result.returncode, 0)
 
 
 if __name__ == '__main__':

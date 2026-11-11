@@ -99,6 +99,7 @@ class Setup:
         self.links = [
             (ROOT / 'config/tmux/tmux.conf', self.config / 'tmux.conf'),
             (ROOT / 'config/nvim', self.config / 'nvim.conf'),
+            (ROOT / 'config/lazygit.yml', self.config / 'lazygit.yml'),
         ]
         self.links = [(source, target) for source, target in self.links
                       if os.path.lexists(target) or not os.path.lexists(target.with_name(target.name + '.nouse'))]

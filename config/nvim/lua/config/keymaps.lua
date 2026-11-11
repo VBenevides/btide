@@ -24,3 +24,24 @@ end, { desc = "Replace in project" })
 -- Leave the cursor in the search field; confirm each replacement.
 vim.keymap.set("n", "<C-h>", ":%s///gc<Left><Left><Left><Left>", { desc = "Replace in buffer" })
 vim.keymap.set("i", "<C-h>", "<Esc>:%s///gc<Left><Left><Left><Left>", { desc = "Replace in buffer" })
+
+-- Compare the saved Git version with the live, editable buffer.
+vim.keymap.set("n", "<leader>gd", function()
+  require("gitsigns").diffthis("HEAD", { vertical = true })
+end, { desc = "Diff against HEAD (side by side)" })
+vim.keymap.set("n", "<leader>gD", "<cmd>diffoff!<cr>", { desc = "Leave diff mode" })
+vim.keymap.set("n", "<leader>gp", function()
+  require("gitsigns").preview_hunk()
+end, { desc = "Preview Git hunk" })
+vim.keymap.set("n", "<leader>gr", function()
+  if vim.fn.confirm("Discard this hunk's unstaged changes?", "&Discard\n&Cancel", 2) == 1 then
+    require("gitsigns").reset_hunk()
+  end
+end, { desc = "Discard Git hunk (confirm)" })
+
+vim.keymap.set("n", "<leader>]", function()
+  require("neo-tree.command").execute({ action = "focus", source = "filesystem", dir = LazyVim.root() })
+end, { desc = "Open project tree" })
+vim.keymap.set("n", "<leader>[", function()
+  require("neo-tree.command").execute({ action = "close" })
+end, { desc = "Close Neo-tree" })
