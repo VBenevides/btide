@@ -9,6 +9,8 @@ import unittest
 from pathlib import Path
 from unittest import mock
 
+from script_loader import load_script
+
 ROOT = Path(__file__).resolve().parents[1]
 spec = importlib.util.spec_from_file_location(
     "btide_update", ROOT / "scripts/update.py"
@@ -42,8 +44,7 @@ class UpdateTests(unittest.TestCase):
             self.version.write_text(self.remote)
             raise self.failure
         else:
-            self.assertEqual(args, ["make", "-C", str(self.checkouts[-1]),
-                                    "install", "INSTALL_ARGS=--copy-config"])
+            self.assertEqual(args, ["make", "-C", str(self.checkouts[-1]), "install"])
             self.version.write_text(self.remote)
 
     def test_upgrade_then_repeat_skips_install_and_cleans_checkout(self):
@@ -135,27 +136,19 @@ class UpdateTests(unittest.TestCase):
             self.assertIn(str(error), output.getvalue())
 
     def test_installed_launcher_dispatches_update_in_both_modes(self):
-        import sys
+        bootstrap = load_script("bootstrap")
 
-        sys.path.insert(0, str(ROOT / "scripts"))
-        import bootstrap
-
-        for copy in (False, True):
-            with self.subTest(copy=copy):
-                setup = bootstrap.Setup(self.home, copy_config=copy)
-                setup.configure()
-                # A malformed installed version makes the real launcher fail before network access.
-                version = setup.config / "VERSION"
-                if version.is_symlink():
-                    version.unlink()
-                version.write_text("invalid")
-                result = subprocess.run(
-                    [str(setup.bin / "btide"), "--update"],
-                    env=setup.env,
-                    capture_output=True,
-                    text=True,
-                    timeout=10,
-                    check=False,
-                )
-                self.assertNotEqual(result.returncode, 0)
-                self.assertIn("Invalid BTIDE version", result.stderr)
+        setup = bootstrap.Setup(self.home)
+        setup.configure()
+        # A malformed installed version makes the real launcher fail before network access.
+        (setup.config / "VERSION").write_text("invalid")
+        result = subprocess.run(
+            [str(setup.bin / "btide"), "--update"],
+            env=setup.env,
+            capture_output=True,
+            text=True,
+            timeout=10,
+            check=False,
+        )
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("Invalid BTIDE version", result.stderr)

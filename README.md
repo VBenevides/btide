@@ -20,11 +20,11 @@ Include Kitty and Ranger image previews:
 curl -fsSL https://raw.githubusercontent.com/VBenevides/btide/main/get.sh | sh -s -- --include kitty
 ```
 
-This clones into a temporary directory, runs `make install` with `--copy-config`, and removes the checkout on success or failure. It installs standalone copies of the launcher and configuration. Installed tools and configuration remain; failed installations are not rolled back. Review remote scripts before executing them.
+This clones into a temporary directory, runs `make install`, and removes the checkout on success or failure. It installs copies of the launcher and configuration. Installed tools and configuration remain; failed installations are not rolled back. Review remote scripts before executing them.
 
-Run `btide --update` to reinstall from upstream `main` only when its `VERSION` is newer than the installed version. Versions use numeric `MAJOR.MINOR.PATCH` ordering; equal or newer local versions skip installation. Git, GNU Make, Bash, and Python 3.10+ are required. The remote checkout is temporary; updates run `make install` with `--copy-config` even if the previous installation used checkout symlinks. Your original checkout is not modified. Existing configuration is backed up and previously enabled Kitty support is retained. Failed installations are reported, not rolled back; the previous version is restored so the update can be retried.
+Run `btide --update` to reinstall from upstream `main` only when its `VERSION` is newer than the installed version. Versions use numeric `MAJOR.MINOR.PATCH` ordering; equal or newer local versions skip installation. Git, GNU Make, Bash, and Python 3.10+ are required. The remote checkout is temporary; updates run `make install`. Your original checkout is not modified. Existing configuration is backed up and previously enabled Kitty support is retained. Failed installations are reported, not rolled back; the previous version is restored so the update can be retried.
 
-Rerun the curl command to reinstall regardless of version (existing configuration is backed up). Other installer options can follow `sh -s --`, such as `--check` for offline verification of an existing installation after fetching the checkout. Curl installs always use `--copy-config`; use that flag when checking them from a local checkout too. To remove a copied launcher, remove `~/.local/bin/btide` after confirming it is the BTIDE executable; `uninstall.sh` only removes checkout-linked launchers.
+Rerun the curl command to reinstall regardless of version (existing configuration is backed up). Other installer options can follow `sh -s --`, such as `--check` for offline verification of an existing installation after fetching the checkout.
 
 ### Install from a Git checkout
 
@@ -34,8 +34,7 @@ cd ~/Projects/BTIDE
 make install
 ```
 
-Keep the checkout in place: the launcher and configuration are symlinked to it.
-For local development or reinstallation, run `make install` again from your existing checkout. Both local and remote installs run the full installer, including dependency checks and editor provisioning. Pass installer options with `INSTALL_ARGS`; the underlying `./install.sh` remains supported.
+The installer copies the launcher and configuration, so you can delete the checkout afterwards. To apply local changes, run `make install` again from the checkout. Both local and remote installs run the full installer, including dependency checks and editor provisioning. Pass installer options with `INSTALL_ARGS`; the underlying `./install.sh` remains supported.
 
 `make install INSTALL_ARGS=--version` prints `VERSION` without installing anything.
 
@@ -77,22 +76,22 @@ Full bootstrap resolves stable upstream releases for Go, Node.js, Neovim, tmux, 
 
 Full bootstrap also updates BTIDE's LazyVim plugins, configured Mason tools, and Tree-sitter parsers and initializes Ranger's text-preview script. Disabled BTIDE Neovim configurations are not provisioned. Plugin and toolchain receipts are checked before reporting success. Failed downloads, builds, and verification remain errors. `--check` is offline and does not repair or install anything. `--config-only` deploys links without installing dependencies or downloading tools.
 
-PiG installation and plugin configuration are handled by pig-plugins on first use, not by bootstrap. PiG continues to use its normal `~/.pig` installation/state; BTIDE does not redirect it into `~/.config/btide`. Private credentials and session state are not copied or overwritten.
+Full bootstrap installs [Ouro](https://github.com/VBenevides/Ouro) and pig-plugins. Each is built from a temporary clone that is deleted afterwards. Ouro is built with Go and installed to `~/.local/bin/ouro`; it is skipped when `ouro version` equals the `VERSION` on the remote `main` branch. pig-plugins runs its upstream installer, which also installs PiG when `pig` is missing; it is skipped when `~/.local/bin/pig-plugins` or `~/pig/bin/pig-plugins` already exists. PiG continues to use its normal `~/.pig` installation/state; BTIDE does not redirect it into `~/.config/btide`. Private credentials and session state are not copied or overwritten.
 
 ## Installed paths
 
 | Repository source | Destination |
 | --- | --- |
-| `config/btide.sh` | `~/.local/bin/btide` executable symlink |
-| `config/nvim/` | `~/.config/btide/nvim.conf` directory symlink |
-| `config/tmux/tmux.conf` | `~/.config/btide/tmux.conf` symlink |
-| `config/lazygit.yml` | `~/.config/btide/lazygit.yml` symlink |
-| `config/kitty/kitty.conf` | `~/.config/btide/kitty.conf` symlink, only with `--include kitty` |
+| `config/btide.sh` | `~/.local/bin/btide` executable copy |
+| `config/nvim/` | `~/.config/btide/nvim.conf` directory copy |
+| `config/tmux/tmux.conf` | `~/.config/btide/tmux.conf` copy |
+| `config/lazygit.yml` | `~/.config/btide/lazygit.yml` copy |
+| `config/kitty/kitty.conf` | `~/.config/btide/kitty.conf` copy, only with `--include kitty` |
 | `config/misc/MesloLGSNerdFontMono-Regular.ttf` | `~/.local/share/fonts/btide/`, only with `--include kitty` |
 
-The table shows Git-checkout installs. Curl installs use the same destinations but copy files instead of creating checkout symlinks. `make install INSTALL_ARGS=--copy-config` also selects this standalone mode.
+Every install copies files. `--copy-config` is still accepted and has no effect.
 
-Configuration edits through these symlinks change the checkout. Runtime, editor cache, and integrity receipts stay machine-local. BTIDE Neovim uses `NVIM_APPNAME=btide/nvim.conf`, keeping its data, cache, and state separate from normal Neovim.
+Edit the installed copies, then run `update-project.py` to capture them, or edit the checkout and run `make install` again. Runtime, editor cache, and integrity receipts stay machine-local. BTIDE Neovim uses `NVIM_APPNAME=btide/nvim.conf`, keeping its data, cache, and state separate from normal Neovim.
 
 ### Use your normal tmux or Neovim configuration
 
@@ -210,7 +209,7 @@ Use `--home /path/to/home` for another home directory. The command copies mapped
 ./uninstall.sh
 ```
 
-This removes this checkout's `~/.local/bin/btide` symlink. Backups, tools, configuration, private data, shell startup files, and running tmux sessions are retained. Repeating uninstall is safe. Foreign launcher files or links and symlinked launcher parent directories are refused.
+This removes `~/.local/bin/btide` when it is a link to this checkout or an identical copy of `config/btide.sh`. Backups, tools, configuration, private data, shell startup files, and running tmux sessions are retained. Repeating uninstall is safe. Foreign launcher files or links and symlinked launcher parent directories are refused.
 
 ## Validation
 

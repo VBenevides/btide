@@ -126,7 +126,7 @@ assert(calls.find == 2 and calls.replace == 2)
         self.run_lua(
             f"dofile({json.dumps(str(KEYMAPS))})\n"
             f"local spec = dofile({json.dumps(str(spec))})\n"
-            + r'''
+            + r"""
 assert(vim.fn.maparg("<leader>]", "n") == "")
 assert(vim.fn.maparg("<leader>[", "n") == "")
 local mappings = spec[1].opts.window.mappings
@@ -168,14 +168,14 @@ node = nil
 open(state)
 close(state)
 assert(opened == 1 and closed == 3)
-'''
+"""
         )
 
     def test_middle_click_closes_clicked_buffer_without_force(self):
         spec = ROOT / "config/nvim/lua/plugins/bufferline.lua"
         self.run_lua(
             f"local spec = dofile({json.dumps(str(spec))})\n"
-            + r'''
+            + r"""
 assert(spec[1][1] == "akinsho/bufferline.nvim")
 local target = vim.api.nvim_create_buf(true, false)
 assert(target ~= vim.api.nvim_get_current_buf())
@@ -183,13 +183,13 @@ local closed
 Snacks = { bufdelete = function(buffer) closed = buffer end }
 spec[1].opts.options.middle_mouse_command(target)
 assert(closed == target, "Must close clicked buffer, not current buffer, without force options")
-'''
+"""
         )
 
     def test_git_diff_shortcuts_and_confirmed_rollback(self):
         self.run_lua(
             f"dofile({json.dumps(str(KEYMAPS))})\n"
-            + r'''
+            + r"""
 local calls = { reset = 0, preview = 0 }
 package.loaded.gitsigns = {
   diffthis = function(base, opts)
@@ -216,20 +216,35 @@ vim.api.nvim_feedkeys(vim.api.nvim_replace_termcodes(
 for _, win in ipairs(vim.api.nvim_list_wins()) do
   assert(not vim.wo[win].diff, "Exit must disable diff in every split")
 end
-'''
+"""
         )
 
-    @unittest.skipUnless(os.environ.get("BTIDE_NVIM_PLUGINS"), "Plugin integration requires BTIDE_NVIM_PLUGINS")
+    @unittest.skipUnless(
+        os.environ.get("BTIDE_NVIM_PLUGINS"),
+        "Plugin integration requires BTIDE_NVIM_PLUGINS",
+    )
     def test_real_gitsigns_opens_head_and_editable_working_buffer(self):
         with tempfile.TemporaryDirectory() as directory:
             project = Path(directory)
+
             def git(*args):
-                subprocess.run(["git", *args], cwd=project, check=True, capture_output=True)
+                subprocess.run(
+                    ["git", *args], cwd=project, check=True, capture_output=True
+                )
+
             git("init", "-q")
             file = project / "tracked.txt"
             file.write_text("before\n")
             git("add", ".")
-            git("-c", "user.name=Test", "-c", "user.email=test@example.invalid", "commit", "-qm", "initial")
+            git(
+                "-c",
+                "user.name=Test",
+                "-c",
+                "user.email=test@example.invalid",
+                "commit",
+                "-qm",
+                "initial",
+            )
             file.write_text("after\n")
             plugin = Path(os.environ["BTIDE_NVIM_PLUGINS"]) / "gitsigns.nvim"
             self.run_lua(
@@ -237,7 +252,7 @@ end
                 + f"vim.cmd.cd({json.dumps(directory)})\n"
                 + f"vim.cmd.edit({json.dumps(str(file))})\n"
                 + f"dofile({json.dumps(str(KEYMAPS))})\n"
-                + r'''
+                + r"""
 local messages = {}
 vim.notify = function(msg) messages[#messages + 1] = tostring(msg) end
 require("gitsigns").setup()
@@ -258,7 +273,7 @@ end
 assert(saw_before and vim.bo[working].modifiable)
 vim.api.nvim_buf_set_lines(working, 0, -1, false, { "edited" })
 assert(vim.api.nvim_buf_get_lines(working, 0, 1, false)[1] == "edited")
-'''
+"""
             )
 
     @unittest.skipUnless(
@@ -330,11 +345,14 @@ end), "Expected replacements in both project files")
                 result = subprocess.check_output(
                     command + ["show-option", "-gv", "prefix"], text=True, timeout=5
                 )
-                self.assertEqual(result.strip(), "C-b")
+                # The prefix is disabled so that the root C-b binding can show hints
+                # and then enter the prefix table.
+                self.assertEqual(result.strip(), "None")
                 bindings = subprocess.check_output(
                     command + ["list-keys", "-T", "root"], text=True, timeout=5
                 )
                 self.assertNotIn(" C-a ", bindings)
+                self.assertIn(" C-b ", bindings)
             finally:
                 subprocess.run(
                     command + ["kill-server"],

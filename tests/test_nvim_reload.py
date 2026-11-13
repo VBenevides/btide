@@ -1,25 +1,31 @@
 """Verify external file changes without requiring editor input or focus events."""
+
 import json
-from pathlib import Path
 import shutil
 import subprocess
 import tempfile
 import unittest
+from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 
 
-@unittest.skipUnless(shutil.which('nvim'), 'Neovim required')
+@unittest.skipUnless(shutil.which("nvim"), "Neovim required")
 class NvimReloadTests(unittest.TestCase):
     def test_idle_reload_preserves_unsaved_edits(self):
         with tempfile.TemporaryDirectory() as temporary:
-            script = Path(temporary) / 'reload.lua'
-            script.write_text('''
+            script = Path(temporary) / "reload.lua"
+            script.write_text(
+                """
 local path = vim.fn.tempname()
 vim.fn.writefile({ "original" }, path)
 vim.cmd.edit(path)
-dofile(''' + json.dumps(str(ROOT / 'config/nvim/lua/config/options.lua')) + ''')
-dofile(''' + json.dumps(str(ROOT / 'config/nvim/lua/config/autocmds.lua')) + ''')
+dofile("""
+                + json.dumps(str(ROOT / "config/nvim/lua/config/options.lua"))
+                + """)
+dofile("""
+                + json.dumps(str(ROOT / "config/nvim/lua/config/autocmds.lua"))
+                + """)
 local ok, err = pcall(function()
   vim.fn.writefile({ "external replacement" }, path)
   assert(vim.wait(3500, function()
@@ -38,9 +44,20 @@ if not ok then
   vim.cmd("cquit 1")
 end
 vim.cmd("qa!")
-''')
+"""
+            )
             result = subprocess.run(
-                ['nvim', '--headless', '-u', 'NONE', '-c',
-                 'lua dofile(' + json.dumps(str(script)) + ')'],
-                text=True, capture_output=True, timeout=15)
+                [
+                    "nvim",
+                    "--headless",
+                    "-u",
+                    "NONE",
+                    "-c",
+                    "lua dofile(" + json.dumps(str(script)) + ")",
+                ],
+                text=True,
+                capture_output=True,
+                timeout=15,
+                check=False,
+            )
             self.assertEqual(result.returncode, 0, result.stdout + result.stderr)

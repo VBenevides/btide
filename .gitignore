@@ -9,3 +9,4 @@ auth.json
 *.db
 *.db-shm
 *.db-wal
+/.ouro/

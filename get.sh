@@ -29,6 +29,6 @@ trap 'exit 130' INT
 trap 'exit 143' TERM
 
 git clone --depth 1 -- https://github.com/VBenevides/btide.git "$checkout/repo" </dev/null
-INSTALL_ARGS=$(python3 -c 'import shlex, sys; print(shlex.join(sys.argv[1:]))' --copy-config "$@")
+INSTALL_ARGS=$(python3 -c 'import shlex, sys; print(shlex.join(sys.argv[1:]))' "$@")
 export INSTALL_ARGS
 make -C "$checkout/repo" install </dev/null

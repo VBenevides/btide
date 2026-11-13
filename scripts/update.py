@@ -57,7 +57,7 @@ def update(home):
             previous.write_text(".".join(map(str, local)) + "\n")
             try:
                 subprocess.run(
-                    ["make", "-C", str(checkout), "install", "INSTALL_ARGS=--copy-config"],
+                    ["make", "-C", str(checkout), "install"],
                     check=True,
                     stdin=subprocess.DEVNULL,
                 )
