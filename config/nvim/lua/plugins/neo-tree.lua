@@ -159,6 +159,24 @@ return {
     opts = {
       window = {
         mappings = {
+          ["<leader>]"] = {
+            function(state)
+              local node = state.tree:get_node()
+              if node and node.type == "directory" and not node:is_expanded() then
+                state.commands.toggle_node(state)
+              end
+            end,
+            desc = "Expand folder",
+          },
+          ["<leader>["] = {
+            function(state)
+              local node = state.tree:get_node()
+              if node and (node:is_expanded() or node:get_parent_id()) then
+                state.commands.close_node(state)
+              end
+            end,
+            desc = "Collapse folder or move to parent",
+          },
           ["<leader>ga"] = { copy_path(":p"), desc = "Copy absolute path" },
           ["<leader>gr"] = { copy_path(":."), desc = "Copy relative path" },
           ["<leader>gn"] = { copy_path(":t"), desc = "Copy file or folder name" },

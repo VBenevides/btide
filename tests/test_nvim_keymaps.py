@@ -121,29 +121,53 @@ assert(calls.find == 2 and calls.replace == 2)
 """
         )
 
-    def test_project_tree_open_and_close_shortcuts(self):
+    def test_tree_shortcuts_expand_and_close_nodes_only(self):
+        spec = ROOT / "config/nvim/lua/plugins/neo-tree.lua"
         self.run_lua(
             f"dofile({json.dumps(str(KEYMAPS))})\n"
+            f"local spec = dofile({json.dumps(str(spec))})\n"
             + r'''
-local calls = {}
-LazyVim = { root = function() return "/project with spaces" end }
-package.loaded["neo-tree.command"] = { execute = function(opts)
-  calls[#calls + 1] = opts
-end }
-local open = vim.fn.maparg("<leader>]", "n", false, true).callback
-local close = vim.fn.maparg("<leader>[", "n", false, true).callback
-open()
-open()
-close()
-close()
-assert(#calls == 4)
-for _, i in ipairs({ 1, 2 }) do
-  assert(calls[i].action == "focus" and calls[i].source == "filesystem")
-  assert(calls[i].dir == "/project with spaces" and not calls[i].toggle)
+assert(vim.fn.maparg("<leader>]", "n") == "")
+assert(vim.fn.maparg("<leader>[", "n") == "")
+local mappings = spec[1].opts.window.mappings
+local expanded, parent = false, "parent"
+local node = {
+  type = "directory",
+  is_expanded = function() return expanded end,
+  get_parent_id = function() return parent end,
+}
+local opened, closed = 0, 0
+local state = { tree = { get_node = function() return node end }, commands = {} }
+state.commands.toggle_node = function(s)
+  assert(s == state)
+  opened = opened + 1
+  expanded = not expanded
 end
-for _, i in ipairs({ 3, 4 }) do
-  assert(calls[i].action == "close" and not calls[i].toggle)
+state.commands.close_node = function(s)
+  assert(s == state)
+  closed = closed + 1
+  expanded = false
 end
+local open = mappings["<leader>]"][1]
+local close = mappings["<leader>["][1]
+open(state)
+open(state)
+assert(opened == 1 and expanded, "Repeated expansion must not collapse the folder")
+close(state)
+close(state)
+assert(closed == 2, "Collapsed folders must use Neo-tree's parent action")
+node.type = "file"
+open(state)
+assert(opened == 1, "Expansion must not open files")
+close(state)
+assert(closed == 3)
+parent = nil
+close(state)
+assert(closed == 3, "A collapsed root must be a safe no-op")
+node = nil
+open(state)
+close(state)
+assert(opened == 1 and closed == 3)
 '''
         )
 

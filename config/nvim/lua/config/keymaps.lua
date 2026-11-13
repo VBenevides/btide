@@ -38,10 +38,3 @@ vim.keymap.set("n", "<leader>gr", function()
     require("gitsigns").reset_hunk()
   end
 end, { desc = "Discard Git hunk (confirm)" })
-
-vim.keymap.set("n", "<leader>]", function()
-  require("neo-tree.command").execute({ action = "focus", source = "filesystem", dir = LazyVim.root() })
-end, { desc = "Open project tree" })
-vim.keymap.set("n", "<leader>[", function()
-  require("neo-tree.command").execute({ action = "close" })
-end, { desc = "Close Neo-tree" })

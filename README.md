@@ -158,7 +158,7 @@ Ranger image previews are disabled by default, even if your personal Ranger conf
 
 ## Neovim
 
-Neo-tree stays closed on startup; use `Space e` to toggle it, `Space ]` to open and focus the project filesystem tree, and `Space [` to close Neo-tree. Dotfiles and Git-ignored files are initially visible; `H` toggles them. `Space r` in Neo-tree navigates an idle managed Ranger pane in tab 5; start Ranger once with Alt+5 first.
+Neo-tree stays closed on startup. Use `Space e` to toggle the explorer panel. Inside Neo-tree, `Space ]` expands the selected folder. `Space [` collapses it, or moves to its parent if it is already collapsed. Dotfiles and Git-ignored files are initially visible; `H` toggles them. `Space r` in Neo-tree navigates an idle managed Ranger pane in tab 5; start Ranger once with Alt+5 first.
 
 Middle-click (M3) a Neovim buffer tab to close that buffer. Unsaved changes use the normal save/discard/cancel prompt.
 
