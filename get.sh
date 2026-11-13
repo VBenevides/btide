@@ -2,7 +2,7 @@
 # Install from a disposable checkout; installed configuration is copied, not linked.
 set -eu
 
-for command in git bash python3 mktemp; do
+for command in git bash python3 make mktemp; do
     if ! command -v "$command" >/dev/null 2>&1; then
         printf 'BTIDE installer requires %s. Install it and retry.\n' "$command" >&2
         exit 1
@@ -29,4 +29,6 @@ trap 'exit 130' INT
 trap 'exit 143' TERM
 
 git clone --depth 1 -- https://github.com/VBenevides/btide.git "$checkout/repo" </dev/null
-bash "$checkout/repo/install.sh" --copy-config "$@" </dev/null
+INSTALL_ARGS=$(python3 -c 'import shlex, sys; print(shlex.join(sys.argv[1:]))' "$@")
+export INSTALL_ARGS
+make -C "$checkout/repo" install </dev/null

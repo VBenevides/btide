@@ -1,0 +1,15 @@
+gui:
+  mouseEvents: true
+  useHunkModeInDiffView: true
+  skipDiscardChangeWarning: false
+os:
+  edit: 'XDG_CONFIG_HOME="$HOME/.config" NVIM_APPNAME=btide/nvim.conf nvim -- {{filename}}'
+  editAtLine: 'XDG_CONFIG_HOME="$HOME/.config" NVIM_APPNAME=btide/nvim.conf nvim +{{line}} -- {{filename}}'
+  editAtLineAndWait: 'XDG_CONFIG_HOME="$HOME/.config" NVIM_APPNAME=btide/nvim.conf nvim +{{line}} -- {{filename}}'
+  editInTerminal: true
+customCommands:
+  - key: D
+    context: files
+    description: 'Editable side-by-side diff against HEAD (tracked files)'
+    command: 'XDG_CONFIG_HOME="$HOME/.config" NVIM_APPNAME=btide/nvim.conf git difftool --no-prompt --extcmd="nvim -d" HEAD -- {{.SelectedFile.Name | quote}}'
+    output: terminal

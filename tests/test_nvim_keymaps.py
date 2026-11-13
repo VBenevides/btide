@@ -121,6 +121,161 @@ assert(calls.find == 2 and calls.replace == 2)
 """
         )
 
+    def test_tree_shortcuts_expand_and_close_nodes_only(self):
+        spec = ROOT / "config/nvim/lua/plugins/neo-tree.lua"
+        self.run_lua(
+            f"dofile({json.dumps(str(KEYMAPS))})\n"
+            f"local spec = dofile({json.dumps(str(spec))})\n"
+            + r"""
+assert(vim.fn.maparg("<leader>]", "n") == "")
+assert(vim.fn.maparg("<leader>[", "n") == "")
+local mappings = spec[1].opts.window.mappings
+local expanded, parent = false, "parent"
+local node = {
+  type = "directory",
+  is_expanded = function() return expanded end,
+  get_parent_id = function() return parent end,
+}
+local opened, closed = 0, 0
+local state = { tree = { get_node = function() return node end }, commands = {} }
+state.commands.toggle_node = function(s)
+  assert(s == state)
+  opened = opened + 1
+  expanded = not expanded
+end
+state.commands.close_node = function(s)
+  assert(s == state)
+  closed = closed + 1
+  expanded = false
+end
+local open = mappings["<leader>]"][1]
+local close = mappings["<leader>["][1]
+open(state)
+open(state)
+assert(opened == 1 and expanded, "Repeated expansion must not collapse the folder")
+close(state)
+close(state)
+assert(closed == 2, "Collapsed folders must use Neo-tree's parent action")
+node.type = "file"
+open(state)
+assert(opened == 1, "Expansion must not open files")
+close(state)
+assert(closed == 3)
+parent = nil
+close(state)
+assert(closed == 3, "A collapsed root must be a safe no-op")
+node = nil
+open(state)
+close(state)
+assert(opened == 1 and closed == 3)
+"""
+        )
+
+    def test_middle_click_closes_clicked_buffer_without_force(self):
+        spec = ROOT / "config/nvim/lua/plugins/bufferline.lua"
+        self.run_lua(
+            f"local spec = dofile({json.dumps(str(spec))})\n"
+            + r"""
+assert(spec[1][1] == "akinsho/bufferline.nvim")
+local target = vim.api.nvim_create_buf(true, false)
+assert(target ~= vim.api.nvim_get_current_buf())
+local closed
+Snacks = { bufdelete = function(buffer) closed = buffer end }
+spec[1].opts.options.middle_mouse_command(target)
+assert(closed == target, "Must close clicked buffer, not current buffer, without force options")
+"""
+        )
+
+    def test_git_diff_shortcuts_and_confirmed_rollback(self):
+        self.run_lua(
+            f"dofile({json.dumps(str(KEYMAPS))})\n"
+            + r"""
+local calls = { reset = 0, preview = 0 }
+package.loaded.gitsigns = {
+  diffthis = function(base, opts)
+    assert(base == "HEAD" and opts.vertical == true)
+    calls.diff = true
+  end,
+  preview_hunk = function() calls.preview = calls.preview + 1 end,
+  reset_hunk = function() calls.reset = calls.reset + 1 end,
+}
+vim.fn.maparg("<leader>gd", "n", false, true).callback()
+vim.fn.maparg("<leader>gp", "n", false, true).callback()
+assert(calls.diff and calls.preview == 1)
+local reset = vim.fn.maparg("<leader>gr", "n", false, true).callback
+vim.fn.confirm = function(_, _, default) assert(default == 2); return 2 end
+reset()
+assert(calls.reset == 0, "Cancel must not discard changes")
+vim.fn.confirm = function() return 1 end
+reset()
+assert(calls.reset == 1)
+vim.cmd.vsplit()
+vim.cmd("windo diffthis")
+vim.api.nvim_feedkeys(vim.api.nvim_replace_termcodes(
+  vim.fn.maparg("<leader>gD", "n"), true, false, true), "xt", false)
+for _, win in ipairs(vim.api.nvim_list_wins()) do
+  assert(not vim.wo[win].diff, "Exit must disable diff in every split")
+end
+"""
+        )
+
+    @unittest.skipUnless(
+        os.environ.get("BTIDE_NVIM_PLUGINS"),
+        "Plugin integration requires BTIDE_NVIM_PLUGINS",
+    )
+    def test_real_gitsigns_opens_head_and_editable_working_buffer(self):
+        with tempfile.TemporaryDirectory() as directory:
+            project = Path(directory)
+
+            def git(*args):
+                subprocess.run(
+                    ["git", *args], cwd=project, check=True, capture_output=True
+                )
+
+            git("init", "-q")
+            file = project / "tracked.txt"
+            file.write_text("before\n")
+            git("add", ".")
+            git(
+                "-c",
+                "user.name=Test",
+                "-c",
+                "user.email=test@example.invalid",
+                "commit",
+                "-qm",
+                "initial",
+            )
+            file.write_text("after\n")
+            plugin = Path(os.environ["BTIDE_NVIM_PLUGINS"]) / "gitsigns.nvim"
+            self.run_lua(
+                f"vim.opt.rtp:prepend({json.dumps(str(plugin))})\n"
+                + f"vim.cmd.cd({json.dumps(directory)})\n"
+                + f"vim.cmd.edit({json.dumps(str(file))})\n"
+                + f"dofile({json.dumps(str(KEYMAPS))})\n"
+                + r"""
+local messages = {}
+vim.notify = function(msg) messages[#messages + 1] = tostring(msg) end
+require("gitsigns").setup()
+assert(vim.wait(5000, function() return require("gitsigns").get_hunks() ~= nil end), "Git attachment failed")
+local working = vim.api.nvim_get_current_buf()
+vim.fn.maparg("<leader>gd", "n", false, true).callback()
+assert(vim.wait(5000, function() return #vim.api.nvim_list_wins() == 2 end),
+  "Diff did not open: " .. table.concat(messages, "; ") .. vim.api.nvim_exec2("messages", { output = true }).output)
+local saw_before = false
+for _, win in ipairs(vim.api.nvim_list_wins()) do
+  assert(vim.wo[win].diff)
+  local buf = vim.api.nvim_win_get_buf(win)
+  if buf ~= working then
+    assert(vim.api.nvim_buf_get_lines(buf, 0, 1, false)[1] == "before")
+    saw_before = true
+  end
+end
+assert(saw_before and vim.bo[working].modifiable)
+vim.api.nvim_buf_set_lines(working, 0, -1, false, { "edited" })
+assert(vim.api.nvim_buf_get_lines(working, 0, 1, false)[1] == "edited")
+"""
+            )
+
     @unittest.skipUnless(
         os.environ.get("BTIDE_NVIM_PLUGINS"),
         "Set BTIDE_NVIM_PLUGINS for plugin integration",
@@ -190,11 +345,14 @@ end), "Expected replacements in both project files")
                 result = subprocess.check_output(
                     command + ["show-option", "-gv", "prefix"], text=True, timeout=5
                 )
-                self.assertEqual(result.strip(), "C-b")
+                # The prefix is disabled so that the root C-b binding can show hints
+                # and then enter the prefix table.
+                self.assertEqual(result.strip(), "None")
                 bindings = subprocess.check_output(
                     command + ["list-keys", "-T", "root"], text=True, timeout=5
                 )
                 self.assertNotIn(" C-a ", bindings)
+                self.assertIn(" C-b ", bindings)
             finally:
                 subprocess.run(
                     command + ["kill-server"],

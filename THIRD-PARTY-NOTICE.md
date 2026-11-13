@@ -8,7 +8,8 @@ Bootstrap uses current stable upstream releases or current Git branches, without
 
 | Component | Authors | License | How BTIDE uses it |
 | --- | --- | --- | --- |
-| [PiG / pig-plugins](https://github.com/VBenevides/pig-plugins) | Vinicius Benevides and contributors | MIT | Existing executable reused, or installed lazily with its upstream installer on first tab selection. |
+| [PiG / pig-plugins](https://github.com/VBenevides/pig-plugins) | Vinicius Benevides and contributors | MIT | Existing executable reused, or installed during bootstrap with its upstream installer. |
+| [Ouro](https://github.com/VBenevides/Ouro) | Vinicius Benevides and contributors | MIT | Built from a temporary clone of the default branch during bootstrap; skipped when the installed version matches. |
 | [tmux](https://github.com/tmux/tmux) | Nicholas Marriott and contributors | ISC | Current system executable or latest stable upstream source build. |
 | [lazygit](https://github.com/jesseduffield/lazygit) | Jesse Duffield and contributors | MIT | Latest stable release, running in the Git window. |
 | [Ranger](https://github.com/ranger/ranger) | Roman Zimbelmann and contributors | GPL-3.0 | Installed from the system package manager. It runs in the Ranger window. BTIDE does not copy or modify its code. |

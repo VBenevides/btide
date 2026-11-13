@@ -4,11 +4,11 @@ A tmux workspace for Neovim, [PiG](https://github.com/VBenevides/pig-plugins), l
 
 ## Install
 
-Supported platforms: Linux x86_64 and aarch64, including WSL. Requires Bash and Python 3.10+. Run as your normal user, not root.
+Supported platforms: Linux x86_64 and aarch64, including WSL. Requires GNU Make, Bash, and Python 3.10+. Run as your normal user, not root.
 
 ### Install with curl
 
-Requires curl, Git, Bash, and Python 3.10+ already installed:
+Requires curl, Git, GNU Make, Bash, and Python 3.10+ already installed:
 
 ```sh
 curl -fsSL https://raw.githubusercontent.com/VBenevides/btide/main/get.sh | sh
@@ -20,29 +20,30 @@ Include Kitty and Ranger image previews:
 curl -fsSL https://raw.githubusercontent.com/VBenevides/btide/main/get.sh | sh -s -- --include kitty
 ```
 
-This clones into a temporary directory, installs standalone copies of the launcher and configuration, and removes the checkout on success or failure. Installed tools and configuration remain; failed installations are not rolled back. Review remote scripts before executing them.
+This clones into a temporary directory, runs `make install`, and removes the checkout on success or failure. It installs copies of the launcher and configuration. Installed tools and configuration remain; failed installations are not rolled back. Review remote scripts before executing them.
 
-Run `btide --update` to reinstall from upstream `main` only when its `VERSION` is newer than the installed version. Versions use numeric `MAJOR.MINOR.PATCH` ordering; equal or newer local versions skip installation. Git, Bash, and Python 3.10+ are required. The remote checkout is temporary, and updates deploy standalone copies even if the previous installation used checkout symlinks; your original checkout is not modified. Existing configuration is backed up and previously enabled Kitty support is retained. Failed installations are reported, not rolled back; the previous version is restored so the update can be retried.
+Run `btide --update` to reinstall from upstream `main` only when its `VERSION` is newer than the installed version. Versions use numeric `MAJOR.MINOR.PATCH` ordering; equal or newer local versions skip installation. Git, GNU Make, Bash, and Python 3.10+ are required. The remote checkout is temporary; updates run `make install`. Your original checkout is not modified. Existing configuration is backed up and previously enabled Kitty support is retained. Failed installations are reported, not rolled back; the previous version is restored so the update can be retried.
 
-Rerun the curl command to reinstall regardless of version (existing configuration is backed up). Other installer options can follow `sh -s --`, such as `--check` for offline verification of an existing installation after fetching the checkout. Curl installs always use `--copy-config`; use that flag when checking them from a local checkout too. To remove a copied launcher, remove `~/.local/bin/btide` after confirming it is the BTIDE executable; `uninstall.sh` only removes checkout-linked launchers.
+Rerun the curl command to reinstall regardless of version (existing configuration is backed up). Other installer options can follow `sh -s --`, such as `--check` for offline verification of an existing installation after fetching the checkout.
 
 ### Install from a Git checkout
 
 ```bash
 git clone https://github.com/VBenevides/btide.git ~/Projects/BTIDE
 cd ~/Projects/BTIDE
-./install.sh
+make install
 ```
 
-Keep the checkout in place: the launcher and configuration are symlinked to it.
-`./install.sh --version` prints `VERSION` without installing anything.
+The installer copies the launcher and configuration, so you can delete the checkout afterwards. To apply local changes, run `make install` again from the checkout. Both local and remote installs run the full installer, including dependency checks and editor provisioning. Pass installer options with `INSTALL_ARGS`; the underlying `./install.sh` remains supported.
+
+`make install INSTALL_ARGS=--version` prints `VERSION` without installing anything.
 
 The installer puts an executable `btide` at `~/.local/bin/btide` and configuration under `~/.config/btide/`. It does not replace your normal `~/.tmux.conf`, `~/.config/nvim`, or Kitty configuration. It does not modify shell startup files or your login shell. BTIDE uses your default shell without installing shell frameworks or extensions.
 
 Kitty and Ranger image previews are opt-in:
 
 ```bash
-./install.sh --include kitty
+make install INSTALL_ARGS="--include kitty"
 ```
 
 Ensure `~/.local/bin` is already on your PATH, or invoke `~/.local/bin/btide` directly. The executable works from Bash, zsh, Fish, and other shells without sourcing a script.
@@ -61,8 +62,8 @@ Timestamps use nanoseconds; existing backup names are never reused. Symlinks are
 Symlinked installation parent directories are refused. Runtime replacements are staged and verified before the previous installation is backed up. Unchanged verified runtime downloads can be reused.
 
 ```bash
-./bootstrap.sh --config-only  # Deploy configuration and launcher without downloads
-./bootstrap.sh --check        # Verify installed tools, editor artifacts, and configuration
+make install INSTALL_ARGS=--config-only  # Deploy configuration and launcher without downloads
+make install INSTALL_ARGS=--check        # Verify installed tools, editor artifacts, and configuration
 ```
 
 Old installations may have links at `~/.tmux.conf` or `~/.config/nvim`. These are not automatically removed or restored; review their backups if you want to restore your previous configuration. Old shell-function installations are not automatically removed from startup files either. In Bash/zsh, `unset -f btide btide_reload btide_close` clears functions that could shadow the executable.
@@ -75,21 +76,22 @@ Full bootstrap resolves stable upstream releases for Go, Node.js, Neovim, tmux, 
 
 Full bootstrap also updates BTIDE's LazyVim plugins, configured Mason tools, and Tree-sitter parsers and initializes Ranger's text-preview script. Disabled BTIDE Neovim configurations are not provisioned. Plugin and toolchain receipts are checked before reporting success. Failed downloads, builds, and verification remain errors. `--check` is offline and does not repair or install anything. `--config-only` deploys links without installing dependencies or downloading tools.
 
-PiG installation and plugin configuration are handled by pig-plugins on first use, not by bootstrap. PiG continues to use its normal `~/.pig` installation/state; BTIDE does not redirect it into `~/.config/btide`. Private credentials and session state are not copied or overwritten.
+Full bootstrap installs [Ouro](https://github.com/VBenevides/Ouro) and pig-plugins. Each is built from a temporary clone that is deleted afterwards. Ouro is built with Go and installed to `~/.local/bin/ouro`; it is skipped when `ouro version` equals the `VERSION` on the remote `main` branch. pig-plugins runs its upstream installer, which also installs PiG when `pig` is missing; it is skipped when `~/.local/bin/pig-plugins` or `~/pig/bin/pig-plugins` already exists. PiG continues to use its normal `~/.pig` installation/state; BTIDE does not redirect it into `~/.config/btide`. Private credentials and session state are not copied or overwritten.
 
 ## Installed paths
 
 | Repository source | Destination |
 | --- | --- |
-| `config/btide.sh` | `~/.local/bin/btide` executable symlink |
-| `config/nvim/` | `~/.config/btide/nvim.conf` directory symlink |
-| `config/tmux/tmux.conf` | `~/.config/btide/tmux.conf` symlink |
-| `config/kitty/kitty.conf` | `~/.config/btide/kitty.conf` symlink, only with `--include kitty` |
+| `config/btide.sh` | `~/.local/bin/btide` executable copy |
+| `config/nvim/` | `~/.config/btide/nvim.conf` directory copy |
+| `config/tmux/tmux.conf` | `~/.config/btide/tmux.conf` copy |
+| `config/lazygit.yml` | `~/.config/btide/lazygit.yml` copy |
+| `config/kitty/kitty.conf` | `~/.config/btide/kitty.conf` copy, only with `--include kitty` |
 | `config/misc/MesloLGSNerdFontMono-Regular.ttf` | `~/.local/share/fonts/btide/`, only with `--include kitty` |
 
-The table shows Git-checkout installs. Curl installs use the same destinations but copy files instead of creating checkout symlinks. `./install.sh --copy-config` also selects this standalone mode.
+Every install copies files. `--copy-config` is still accepted and has no effect.
 
-Configuration edits through these symlinks change the checkout. Runtime, editor cache, and integrity receipts stay machine-local. BTIDE Neovim uses `NVIM_APPNAME=btide/nvim.conf`, keeping its data, cache, and state separate from normal Neovim.
+Edit the installed copies, then run `update-project.py` to capture them, or edit the checkout and run `make install` again. Runtime, editor cache, and integrity receipts stay machine-local. BTIDE Neovim uses `NVIM_APPNAME=btide/nvim.conf`, keeping its data, cache, and state separate from normal Neovim.
 
 ### Use your normal tmux or Neovim configuration
 
@@ -155,7 +157,9 @@ Ranger image previews are disabled by default, even if your personal Ranger conf
 
 ## Neovim
 
-Neo-tree stays closed on startup; use `Space e` to open it. Dotfiles and Git-ignored files are initially visible; `H` toggles them. `Space r` in Neo-tree navigates an idle managed Ranger pane in tab 5; start Ranger once with Alt+5 first.
+Neo-tree stays closed on startup. Use `Space e` to toggle the explorer panel. Inside Neo-tree, `Space ]` expands the selected folder. `Space [` collapses it, or moves to its parent if it is already collapsed. Dotfiles and Git-ignored files are initially visible; `H` toggles them. `Space r` in Neo-tree navigates an idle managed Ranger pane in tab 5; start Ranger once with Alt+5 first.
+
+Middle-click (M3) a Neovim buffer tab to close that buffer. Unsaved changes use the normal save/discard/cancel prompt.
 
 Included language servers: `bashls`, `gopls`, `jsonls`, `lua_ls`, `marksman`, `pyright`, and `ruff`. Go and Python debugging use Delve and debugpy. Formatters and other tools are listed in `config/nvim-tools.json`. Inspect them with `:Lazy`, `:Mason`, `:LspInfo`, and `:ConformInfo`; add extras with `:LazyExtras`.
 
@@ -166,6 +170,29 @@ The `d` operator discards deleted text in normal and visual modes, including `dd
 Ctrl+Shift+f opens project-wide find. Ctrl+Shift+h opens project-wide replace through Grug Far, without a file-type restriction. Both shortcuts work in normal and insert modes.
 
 In Grug Far, enter the search and replacement text. Review the matches before you press `\r` to replace them. These shortcuts require a terminal that sends distinct Ctrl+Shift key sequences. The bundled Kitty configuration provides these sequences. See `config/nvim/README.md` for explorer actions.
+
+### Git diffs and hunk actions
+
+In normal mode (the leader key is Space):
+
+| Shortcut | Action |
+| --- | --- |
+| `Space gd` | Compare the current tracked file against HEAD in vertical splits |
+| `Space gD` | Turn off diff mode; close the old-version split with `:q` |
+| `Space gp` | Preview the hunk under the cursor |
+| `Space gr` | Discard the current unstaged hunk after confirmation |
+
+Edit the working-file split, not the Git snapshot; save with `:w`. Use `Ctrl+w h/l` or click to switch splits, and `[c` / `]c` to navigate changes. In the working-file pane, `do` restores the hunk from the old version immediately (`u` undoes it). The comparison includes staged changes, but hunk preview/discard uses the index: staged changes are not discarded. These Git comparisons require a tracked file and an existing commit.
+
+### Lazygit
+
+BTIDE's Git tab and Alt+g popup use `~/.config/btide/lazygit.yml`, without changing your personal lazygit configuration.
+
+1. Select an existing, modified tracked file and press `D` to open a side-by-side Neovim diff against HEAD. The left pane is a temporary old version; edit only the right (working-file) pane. Click a changed block and use `do` to restore its old version (`u` undoes it). Save with `:w`, then `:qa` to return to lazygit. This also shows staged changes but does not stage your edits.
+2. For hunk actions inside lazygit, select a file and press Enter to focus its diff. Click a hunk or use `h` / `l` to navigate; `a` toggles hunk/line selection. Space stages or unstages the selection. `d` discards an unstaged selection with confirmation (on staged changes it unstages instead).
+3. Press `e` on a diff line to open that location in BTIDE's Neovim. Save and quit to return. Text editing is in Neovim, not directly in lazygit's diff pane.
+
+Untracked files have no HEAD version: use `e` rather than `D`. The `D` comparison is for working files, not directory or historical commit selections. See upstream [lazygit keybindings](https://github.com/jesseduffield/lazygit/blob/master/docs/keybindings/Keybindings_en.md) for more actions.
 
 ## Capture local configuration
 
@@ -182,7 +209,7 @@ Use `--home /path/to/home` for another home directory. The command copies mapped
 ./uninstall.sh
 ```
 
-This removes this checkout's `~/.local/bin/btide` symlink. Backups, tools, configuration, private data, shell startup files, and running tmux sessions are retained. Repeating uninstall is safe. Foreign launcher files or links and symlinked launcher parent directories are refused.
+This removes `~/.local/bin/btide` when it is a link to this checkout or an identical copy of `config/btide.sh`. Backups, tools, configuration, private data, shell startup files, and running tmux sessions are retained. Repeating uninstall is safe. Foreign launcher files or links and symlinked launcher parent directories are refused.
 
 ## Validation
 
