@@ -2,6 +2,26 @@
 
 Notable changes to BTIDE, a portable terminal IDE workspace.
 
+## [0.2.1] - 2026-11-13
+
+### Features
+
+- Add `btide --prune`. It keeps only the newest backup of each path, deletes backups older than 7 days, and deletes files in `~/.local/share/btide` that the current version does not use. Use `--dry-run` to list the changes. It keeps any entry that a shell startup file refers to, and it does not run while an installation is active.
+- Run the pruning quietly in the background each time `btide` starts and after a full install. Errors go to `~/.cache/btide/prune.log`.
+- Add `btide --size` to show disk use of the BTIDE data, cache, and state directories per component.
+- Add `./uninstall.sh --purge` to delete those three directories and the `~/.local/bin` links that point into them. Configuration and other tools stay.
+- Install `maintenance.py` with the launcher so the commands work after the checkout is deleted.
+
+### Bugfixes
+
+- Disable the `markdown-preview.nvim` plugin to save about 57 MB. The installer now runs Lazy clean, so existing installations remove the plugin directory.
+
+### Other
+
+- Add tests for backup rules, leftover removal, locking, symbolic links, quiet mode, the launcher options, purge, and the plugin setting.
+- Exclude `maintenance.py` from configuration capture with `update-project.py`.
+- Document the disk-use commands in the README.
+
 ## [0.1.2] - 2026-10-24
 
 ### Features
