@@ -14,6 +14,8 @@ local function main()
       end
     end
   end
+  -- Remove plugins that the configuration no longer uses, such as a disabled extra.
+  manage.clean({ wait = true, show = false })
   manage.install({ wait = true, show = false, concurrency = 4 })
   verify_plugins()
   manage.update({ wait = true, show = false, concurrency = 4 })

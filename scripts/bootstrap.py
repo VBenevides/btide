@@ -21,6 +21,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "scripts"))
+import maintenance
 from releases import open_url, resolve_release, safe_url, validate_spec
 from system_tools import check_managed_tools, ensure_compatible_tools
 
@@ -118,6 +119,7 @@ class Setup:
         self.links.extend(
             [
                 (ROOT / "scripts/update.py", self.config / "update.py"),
+                (ROOT / "scripts/maintenance.py", self.config / "maintenance.py"),
                 (ROOT / "VERSION", self.config / "VERSION"),
             ]
         )
@@ -876,6 +878,8 @@ def main():
             setup.install_ouro()
             setup.install_pig_plugins()
             setup.check()
+        # Keep one recent backup per path; the pruning command handles the rest.
+        maintenance.prune_backups(setup.home)
     print(
         "Installed ~/.local/bin/btide. Ensure ~/.local/bin is on your PATH, then run btide in your project."
     )

@@ -203,6 +203,18 @@ Untracked files have no HEAD version: use `e` rather than `D`. The `D` compariso
 
 Use `--home /path/to/home` for another home directory. The command copies mapped configuration and launcher changes back to the checkout, skipping unchanged content and common private/runtime paths. Symlinked source parents and nested configuration links are rejected. Independent valid changes still proceed if another item fails; failures return a nonzero status. Review the diff before distributing changes.
 
+## Disk use
+
+```bash
+btide --size           # Disk use of BTIDE data, cache and state per component
+btide --prune          # Delete old backups and files left by other versions
+btide --prune --dry-run
+```
+
+`--prune` keeps only the newest backup of each path and deletes any backup older than 7 days. It also deletes entries in `~/.local/share/btide` that the current version does not use, but it keeps any entry that a shell startup file refers to. Every `btide` launch runs the same pruning quietly in the background. It skips itself while an installation runs and writes any errors to `~/.cache/btide/prune.log`. A full install also prunes backups when it finishes.
+
+`./uninstall.sh --purge` also deletes `~/.local/share/btide`, `~/.cache/btide` and `~/.local/state/btide`. Configuration and other tools in `~/.local/bin` stay.
+
 ## Uninstall
 
 ```bash

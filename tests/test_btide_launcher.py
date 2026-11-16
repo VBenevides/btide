@@ -411,6 +411,33 @@ class BtideLauncherTests(unittest.TestCase):
             f"SHELL_RETURNED:{process.pid}:{process.pid}:0", self.read_output(master)
         )
 
+    def test_launch_prunes_old_backups_in_the_background(self):
+        config = self.home / ".config/btide"
+        config.mkdir(parents=True)
+        shutil.copy2(ROOT / "scripts/maintenance.py", config / "maintenance.py")
+        state = self.home / ".local/share/btide"
+        (state / "smart-approve").mkdir(parents=True)
+        (state / "nvim.conf").mkdir()
+        old = self.home / ".local/bin/btide.1600000000000000000.bak"
+        old.parent.mkdir(parents=True)
+        old.write_text("old")
+        process, _ = self.start_shell(shutil.which("bash"), self.env, executable=True)
+        self.wait_client(process)
+        deadline = time.monotonic() + 10
+        while time.monotonic() < deadline and (
+            old.exists() or (state / "smart-approve").exists()
+        ):
+            time.sleep(0.1)
+        self.assertFalse(old.exists())
+        self.assertFalse((state / "smart-approve").exists())
+        self.assertTrue((state / "nvim.conf").exists())
+        self.assertEqual((self.home / ".cache/btide/prune.log").read_text(), "")
+
+    def test_launch_without_maintenance_script_still_starts(self):
+        process, _ = self.start_shell(shutil.which("bash"), self.env, executable=True)
+        self.wait_client(process)
+        self.assertFalse((self.home / ".cache/btide/prune.log").exists())
+
     def test_tabs_start_only_when_selected(self):
         script = self.root / "tabs.sh"
         script.write_text(

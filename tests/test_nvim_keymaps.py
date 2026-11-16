@@ -186,6 +186,16 @@ assert(closed == target, "Must close clicked buffer, not current buffer, without
 """
         )
 
+    def test_markdown_preview_plugin_is_disabled(self):
+        spec = ROOT / "config/nvim/lua/plugins/markdown.lua"
+        self.run_lua(
+            f"local spec = dofile({json.dumps(str(spec))})\n"
+            + r"""
+assert(spec[1][1] == "iamcco/markdown-preview.nvim")
+assert(spec[1].enabled == false)
+"""
+        )
+
     def test_git_diff_shortcuts_and_confirmed_rollback(self):
         self.run_lua(
             f"dofile({json.dumps(str(KEYMAPS))})\n"

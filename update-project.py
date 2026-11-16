@@ -55,7 +55,12 @@ def capture(setup, dry_run=False):
     mappings = [
         (source, destination)
         for destination, source in setup.links
-        if destination not in {ROOT / "scripts/update.py", ROOT / "VERSION"}
+        if destination
+        not in {
+            ROOT / "scripts/update.py",
+            ROOT / "scripts/maintenance.py",
+            ROOT / "VERSION",
+        }
     ]
     for source, destination in mappings:
         try:
