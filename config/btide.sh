@@ -683,21 +683,34 @@ btide() {
   fi
 }
 
+# Prune old backups and files from other versions without delaying the launch.
+# Output goes to a log; the job skips itself while an installation runs.
+btide_auto_prune() {
+  local script="$HOME/.config/btide/maintenance.py"
+  [ -f "$script" ] && command -v python3 >/dev/null 2>&1 || return 0
+  mkdir -p "$HOME/.cache/btide" 2>/dev/null || return 0
+  (nohup python3 "$script" prune --quiet \
+    >"$HOME/.cache/btide/prune.log" 2>&1 </dev/null &) >/dev/null 2>&1
+  return 0
+}
+
 if [ -n "${BASH_VERSION:-}" ] && [[ "${BASH_SOURCE[0]}" == "$0" ]]; then
   export PATH="$HOME/.local/bin:$PATH"
   case "${1:-}" in
-    '') btide ;;
+    '') btide_auto_prune; btide ;;
     --reload) btide_reload ;;
     --close) btide_close ;;
     kill-server) tmux kill-server ;;
     --update) python3 "$HOME/.config/btide/update.py" ;;
+    --size) python3 "$HOME/.config/btide/maintenance.py" size ;;
+    --prune) shift; python3 "$HOME/.config/btide/maintenance.py" prune "$@" ;;
     --version)
       version="$(cat "$HOME/.config/btide/VERSION")" || exit 1
       printf 'btide %s\n' "$version"
       ;;
     --help|-h)
       printf '%s\n' \
-        'Usage: btide [kill-server|--reload|--close|--update|--version|--help]' \
+        'Usage: btide [kill-server|--reload|--close|--update|--size|--prune|--version|--help]' \
         '' \
         'With no option, create or attach to the workspace for the current directory.' \
         '' \
@@ -710,6 +723,10 @@ if [ -n "${BASH_VERSION:-}" ] && [[ "${BASH_SOURCE[0]}" == "$0" ]]; then
         '              The next btide launch loads the current configuration.' \
         '  --update    Reinstall from remote main only when its version is newer than local.' \
         '              Uses standalone copies; backs up existing configuration.' \
+        '  --size      Show disk use of BTIDE data, cache and state per component.' \
+        '  --prune     Keep only the newest backup of each path, delete backups older than' \
+        '              7 days, and delete files left by other versions. Add --dry-run to list.' \
+        '              This also runs quietly in the background each time btide starts.' \
         '  --version   Show the installed version without starting a session.' \
         '  --help, -h  Show this help without starting a session or installing anything.'
       ;;

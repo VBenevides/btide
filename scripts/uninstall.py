@@ -1,14 +1,16 @@
-"""Remove the installed BTIDE executable, retaining tools and user configuration."""
+"""Remove the installed BTIDE executable; --purge also deletes BTIDE data, cache and state."""
 
 import argparse
 import os
 import sys
 from pathlib import Path
 
+import maintenance
+
 ROOT = Path(__file__).resolve().parents[1]
 
 
-def uninstall(home):
+def uninstall(home, purge=False):
     home = home.resolve()
     launcher = home / ".local/bin/btide"
     for parent in launcher.parents:
@@ -30,14 +32,27 @@ def uninstall(home):
                 + str(launcher)
             )
         launcher.unlink()
+    if purge:
+        maintenance.purge(home)
+        print(
+            "Removed ~/.local/bin/btide and the BTIDE data, cache and state directories; "
+            "configuration and other tools in ~/.local/bin retained."
+        )
+        return
     print(
         "Removed ~/.local/bin/btide; backups, tools, configuration and data retained."
     )
 
 
 def main():
-    argparse.ArgumentParser(description=__doc__).parse_args()
-    uninstall(Path.home())
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument(
+        "--purge",
+        action="store_true",
+        help="Also delete ~/.local/share/btide, ~/.cache/btide and ~/.local/state/btide",
+    )
+    args = parser.parse_args()
+    uninstall(Path.home(), purge=args.purge)
 
 
 if __name__ == "__main__":

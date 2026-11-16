@@ -20,9 +20,9 @@ class UninstallTests(unittest.TestCase):
         self.launcher.symlink_to(ROOT / "config/btide.sh")
         self.env = dict(os.environ, HOME=str(self.home), PYTHONDONTWRITEBYTECODE="1")
 
-    def run_uninstall(self):
+    def run_uninstall(self, *arguments):
         return subprocess.run(
-            [ROOT / "uninstall.sh"],
+            [ROOT / "uninstall.sh", *arguments],
             env=self.env,
             text=True,
             capture_output=True,
@@ -48,6 +48,33 @@ class UninstallTests(unittest.TestCase):
         for path in retained:
             self.assertEqual(path.read_text(), "retained fixture\n")
         self.assertEqual(self.run_uninstall().returncode, 0)
+
+    def test_purge_deletes_btide_data_but_keeps_configuration_and_other_tools(self):
+        state = self.home / ".local/share/btide/nvim.conf"
+        state.mkdir(parents=True)
+        cache = self.home / ".cache/btide/nvim.conf"
+        cache.mkdir(parents=True)
+        config = self.home / ".config/btide/tmux.conf"
+        config.parent.mkdir(parents=True)
+        config.write_text("config")
+        tool = self.launcher.parent / "pig-plugins"
+        tool.write_text("tool")
+        result = self.run_uninstall("--purge")
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertFalse(os.path.lexists(self.launcher))
+        self.assertFalse((self.home / ".local/share/btide").exists())
+        self.assertFalse((self.home / ".cache/btide").exists())
+        self.assertEqual(config.read_text(), "config")
+        self.assertEqual(tool.read_text(), "tool")
+
+    def test_purge_does_nothing_when_the_launcher_is_not_owned(self):
+        self.launcher.unlink()
+        self.launcher.write_text("foreign")
+        state = self.home / ".local/share/btide"
+        state.mkdir(parents=True)
+        result = self.run_uninstall("--purge")
+        self.assertNotEqual(result.returncode, 0)
+        self.assertTrue(state.exists())
 
     def test_copied_launcher_is_removed(self):
         self.launcher.unlink()

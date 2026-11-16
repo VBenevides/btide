@@ -24,6 +24,7 @@ class UpdateProjectTests(unittest.TestCase):
             "scripts/system_tools.py",
             "scripts/releases.py",
             "scripts/update.py",
+            "scripts/maintenance.py",
             "VERSION",
             "versions.json",
             "update-project.py",

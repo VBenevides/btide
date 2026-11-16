@@ -104,6 +104,8 @@ class ShellInstallTests(unittest.TestCase):
                 "--reload    Restore missing tabs",
                 "--close     Destroy",
                 "--update    Reinstall",
+                "--size      Show disk use",
+                "--prune     Keep only the newest backup",
                 "--version   Show the installed version",
                 "kill-server Stop all BTIDE sessions",
                 "The next btide launch loads the current configuration",
@@ -141,6 +143,35 @@ class ShellInstallTests(unittest.TestCase):
         self.assertEqual(
             before, {path.relative_to(self.home) for path in self.home.rglob("*")}
         )
+
+    def test_prune_and_size_run_the_installed_script_in_the_isolated_home(self):
+        self.setup.configure()
+        state = self.setup.state
+        (state / "receipts").mkdir(parents=True)
+        (state / "smart-approve").mkdir()
+        (state / "nvim.conf").mkdir()
+        old = self.setup.bin / "btide.1600000000000000000.bak"
+        old.write_text("old")
+        for arguments, expected in (
+            (["--size"], "nvim.conf"),
+            (["--prune", "--dry-run"], "Would remove"),
+            (["--prune"], "Removed"),
+        ):
+            result = subprocess.run(
+                [str(self.setup.bin / "btide"), *arguments],
+                env=self.setup.env,
+                text=True,
+                capture_output=True,
+                timeout=30,
+                check=False,
+            )
+            self.assertEqual(result.returncode, 0, result.stderr)
+            self.assertIn(expected, result.stdout)
+            if arguments == ["--prune", "--dry-run"]:
+                self.assertTrue((state / "smart-approve").exists())
+        self.assertFalse((state / "smart-approve").exists())
+        self.assertFalse(old.exists())
+        self.assertTrue((state / "nvim.conf").exists())
 
     def test_version_fails_when_installed_version_is_missing(self):
         self.setup.configure()
